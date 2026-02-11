@@ -26,44 +26,46 @@
   </div>
   <div v-if="!isSmallScreen" class="controls">
     <v-card class="controls-card">
-      <v-card-title>文本生成动作</v-card-title>
+      <v-card-title class="controls-title">文本生成动作</v-card-title>
       <v-card-text class="py-0 controls-body">
         <!-- 使用说明 -->
-        <div class="usage-instructions">
-          <div class="usage-title">=== 文本生成动作工具 ===</div>
-          <div class="usage-line">输入文本描述 → 生成并加载动作</div>
+        <section class="usage-instructions">
+          <h3 class="usage-heading">文本生成动作工具</h3>
+          <p class="usage-desc">输入文本描述 → 生成并加载动作</p>
           <ul class="usage-bullets">
             <li>动作执行中可随时输入新文本切换动作</li>
             <li>动作完成后自动切换到 default 姿态</li>
           </ul>
           <div class="usage-cmds">
-            <div><strong>命令:</strong></div>
-            <div><strong>&lt;文本描述&gt;</strong> — 生成新动作</div>
-            <div><strong>default</strong> — 手动回到默认姿态</div>
-            <div><strong>last</strong> — 重新加载上一个生成的动作</div>
-            <div><strong>list</strong> — 显示所有已生成的动作</div>
-            <div><strong>clear</strong> — 清理当前会话下的生成动作</div>
-            <div><strong>status</strong> — 显示当前动作状态</div>
-            <div><strong>q/quit</strong> — 退出（网页模式请直接关闭页面）</div>
+            <span class="usage-cmds-label">命令</span>
+            <div class="usage-cmd-row"><kbd>&lt;文本描述&gt;</kbd> 生成新动作</div>
+            <div class="usage-cmd-row"><kbd>default</kbd> 手动回到默认姿态</div>
+            <div class="usage-cmd-row"><kbd>last</kbd> 重新加载上一个生成的动作</div>
+            <div class="usage-cmd-row"><kbd>list</kbd> 显示所有已生成的动作</div>
+            <div class="usage-cmd-row"><kbd>clear</kbd> 清理当前会话下的生成动作</div>
+            <div class="usage-cmd-row"><kbd>status</kbd> 显示当前动作状态</div>
+            <div class="usage-cmd-row"><kbd>q</kbd>/<kbd>quit</kbd> 退出（网页请直接关闭页面）</div>
           </div>
-          <div class="usage-footer">========================</div>
-        </div>
-        <v-divider class="my-2"/>
+        </section>
+        <div class="section-divider"></div>
 
         <!-- 快捷命令 -->
-        <div class="command-buttons">
-          <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1" @click="backToDefault">default</v-btn>
-          <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1 || !lastGeneratedMotion" @click="replayLastMotion">last</v-btn>
-          <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1" @click="listGeneratedMotions">list</v-btn>
-          <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1" @click="showStatus">status</v-btn>
-          <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1" @click="clearOldMotions">clear</v-btn>
-        </div>
-        <v-divider class="my-2"/>
+        <section class="command-section">
+          <span class="section-label">快捷命令</span>
+          <div class="command-buttons">
+            <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1" @click="backToDefault">default</v-btn>
+            <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1 || !lastGeneratedMotion" @click="replayLastMotion">last</v-btn>
+            <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1" @click="listGeneratedMotions">list</v-btn>
+            <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1" @click="showStatus">status</v-btn>
+            <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1" @click="clearOldMotions">clear</v-btn>
+          </div>
+        </section>
+        <div class="section-divider"></div>
 
         <!-- Text-to-Motion Section -->
-        <div class="text-to-motion-section">
+        <section class="text-to-motion-section">
+          <span class="section-label">AI 动作生成</span>
           <div class="status-legend">
-            <span class="status-name">AI Motion Generation</span>
             <v-chip
               v-if="textMotionStatus === 'connected'"
               size="x-small"
@@ -248,17 +250,17 @@
             <v-icon icon="mdi-robot" class="mr-1"></v-icon>
             Generate motions with AI
           </v-btn>
-        </div>
+        </section>
 
         <v-divider class="my-2"/>
 
         <!-- list: 已生成的动作（最多 10 个） -->
         <div v-if="generatedMotions.length > 0" class="generated-section mt-2">
-          <div class="status-legend">
-            <span class="status-name">已生成的动作</span>
-            <v-chip size="x-small" variant="tonal">{{ generatedMotions.length }}{{ generatedMotions.length >= 10 ? '（已达上限）' : '' }}</v-chip>
+          <span class="section-label">已生成的动作</span>
+          <div class="status-legend generated-legend">
+            <v-chip size="x-small" variant="tonal" color="primary">{{ generatedMotions.length }}/10{{ generatedMotions.length >= 10 ? '（已达上限）' : '' }}</v-chip>
           </div>
-          <div class="text-caption mb-1">最多保留 10 个，当前 {{ generatedMotions.length }} 个。点击可重新播放。</div>
+          <p class="generated-hint">最多保留 10 个，点击可重新播放。</p>
           <div class="generated-motions-list">
             <v-chip
               v-for="motion in generatedMotions"
@@ -270,7 +272,7 @@
               @click="playGeneratedMotion(motion)"
             >
               <v-icon icon="mdi-play-circle" size="x-small" class="mr-1"></v-icon>
-              {{ motion.name }}
+              {{ motion.text_prompt || motion.motion_id }}
             </v-chip>
           </div>
           <v-divider class="my-2"/>
@@ -812,11 +814,11 @@ export default {
       }
     },
     listGeneratedMotions() {
-      const names = this.generatedMotions.map((m) => m.name).filter(Boolean);
-      if (names.length === 0) {
+      const labels = this.generatedMotions.map((m) => (m.text_prompt || m.motion_id || '').trim()).filter(Boolean);
+      if (labels.length === 0) {
         this.statusMessage = '当前无已生成动作。';
       } else {
-        this.statusMessage = `已生成动作(${names.length}/${MAX_GENERATED_MOTIONS}): ${names.join(' | ')}`;
+        this.statusMessage = `已生成动作(${labels.length}/${MAX_GENERATED_MOTIONS}): ${labels.join(' | ')}`;
       }
       setTimeout(() => { this.statusMessage = ''; }, 5000);
     },
@@ -1168,7 +1170,7 @@ export default {
   position: fixed;
   top: 20px;
   right: 20px;
-  width: 320px;
+  width: 340px;
   z-index: 1000;
 }
 
@@ -1195,57 +1197,139 @@ export default {
 
 .controls-card {
   max-height: calc(100vh - 40px);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.controls-title {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 14px 16px 8px;
 }
 
 .controls-body {
   max-height: calc(100vh - 160px);
   overflow-y: auto;
   overscroll-behavior: contain;
+  padding: 8px 16px 16px;
+}
+
+.section-divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.08);
+  margin: 12px 0;
+}
+
+.section-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(0, 0, 0, 0.55);
+  margin-bottom: 8px;
 }
 
 .usage-instructions {
-  background: rgba(0, 0, 0, 0.03);
-  border-radius: 8px;
-  padding: 8px;
+  background: linear-gradient(135deg, rgba(25, 118, 210, 0.06) 0%, rgba(25, 118, 210, 0.02) 100%);
+  border-radius: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(25, 118, 210, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.usage-heading {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin: 0 0 2px;
+  color: rgba(0, 0, 0, 0.85);
+  letter-spacing: 0.01em;
+}
+
+.usage-desc {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: rgba(0, 0, 0, 0.7);
+  margin: 0;
+}
+
+.usage-bullets {
+  margin: 4px 0 6px 14px;
+  padding: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.usage-bullets li {
+  margin-bottom: 2px;
+}
+
+.usage-cmds {
+  font-size: 0.78rem;
+  line-height: 1.5;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.usage-title,
-.usage-footer {
+.usage-cmds-label {
   font-weight: 700;
-  font-size: 0.82rem;
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.75);
+  margin-bottom: 2px;
 }
 
-.usage-line,
-.usage-cmds {
-  font-size: 0.78rem;
-  line-height: 1.35;
+.usage-cmd-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.usage-bullets {
-  margin: 4px 0 2px 16px;
-  padding: 0;
-  font-size: 0.78rem;
+.usage-cmd-row kbd {
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.command-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .command-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
+}
+
+.example-prompts .text-caption {
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.6);
+  margin-bottom: 6px;
 }
 
 .example-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   margin-top: 6px;
 }
 
 .example-chip {
   text-transform: none;
   white-space: normal;
+  max-width: 100%;
+  font-size: 0.78rem;
 }
 
 .motion-status {
@@ -1333,11 +1417,27 @@ export default {
   padding: 8px;
 }
 
+.generated-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.generated-legend {
+  margin-bottom: 2px;
+}
+
+.generated-hint {
+  font-size: 0.72rem;
+  color: rgba(0, 0, 0, 0.55);
+  margin: 0 0 6px;
+}
+
 .generated-motions-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
+  gap: 8px;
+  margin-top: 4px;
   max-height: 120px;
   overflow-y: auto;
 }
