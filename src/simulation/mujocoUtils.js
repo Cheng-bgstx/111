@@ -101,7 +101,7 @@ export async function reloadScene(mjcf_path) {
   this.numActions = 0;
 
   this.timestep = this.model.opt.timestep;
-  this.decimation = Math.max(1, Math.round(0.02 / this.timestep));
+  this.decimation = 1;
 }
 
 export async function reloadPolicy(policy_path, options = {}) {

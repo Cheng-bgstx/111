@@ -17,8 +17,7 @@ jobs:
       - run: npm install
       - run: npm run build
         env:
-          # 这里直接使用了本地提取的 URL，安全且有效
-          VITE_TEXT_MOTION_API_URL: https://crossing-pursue-traveller-media.trycloudflare.com
+          VITE_TEXT_MOTION_API_URL: ${{ secrets.VITE_TEXT_MOTION_API_URL }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist

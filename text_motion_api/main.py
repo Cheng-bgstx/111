@@ -15,10 +15,10 @@ import json
 import os
 import time
 import uuid
+import hashlib
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Dict, Optional, Any
 import numpy as np
 import websockets
@@ -55,9 +55,16 @@ class Config:
     
     # Rate limiting
     MAX_REQUESTS_PER_MINUTE = int(os.getenv("MAX_REQUESTS_PER_MINUTE", "10"))
+    MAX_REQUESTS_PER_MINUTE_PER_IP = int(os.getenv("MAX_REQUESTS_PER_MINUTE_PER_IP", "60"))
     
     # CORS settings
-    ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+    ALLOWED_ORIGINS = [origin.strip().rstrip("/") for origin in os.getenv("ALLOWED_ORIGINS", "").split(",") if origin.strip()]
+    STRICT_ORIGIN_CHECK = os.getenv("STRICT_ORIGIN_CHECK", "1") == "1"
+
+    # Request/session security
+    TRUST_PROXY_HEADERS = os.getenv("TRUST_PROXY_HEADERS", "0") == "1"
+    REQUIRE_SESSION_FOR_API = os.getenv("REQUIRE_SESSION_FOR_API", "1") == "1"
+    SERIALIZE_REMOTE_REQUESTS = os.getenv("SERIALIZE_REMOTE_REQUESTS", "1") == "1"
 
 
 # ==================== Data Models ====================
@@ -65,7 +72,7 @@ class Config:
 class TextToMotionRequest(BaseModel):
     """Request model for text-to-motion generation"""
     text: str = Field(..., min_length=1, max_length=500, description="Text description of the motion")
-    motion_length: float = Field(default=4.0, ge=0.1, le=9.8, description="Motion duration in seconds")
+    motion_length: float = Field(default=4.0, ge=0.1, le=9.0, description="Motion duration in seconds")
     num_inference_steps: int = Field(default=10, ge=1, le=1000, description="Number of denoising steps")
     seed: Optional[int] = Field(default=None, description="Random seed for reproducibility")
     smooth: Optional[bool] = Field(default=None, description="Enable basic smoothing")
@@ -113,6 +120,7 @@ class UserSession:
     motions: Dict[str, dict] = field(default_factory=dict)
     request_count: int = 0
     request_window_start: datetime = field(default_factory=datetime.now)
+    client_fingerprint: str = ""
 
 
 # ==================== Global State ====================
@@ -123,22 +131,27 @@ class AppState:
         self.sessions: Dict[str, UserSession] = {}
         self.lock = asyncio.Lock()
         self.cleanup_task: Optional[asyncio.Task] = None
-        
-    async def get_or_create_session(self, session_id: Optional[str] = None) -> UserSession:
+        self.ip_rate: Dict[str, Dict[str, Any]] = {}
+
+    async def get_or_create_session(self, session_id: Optional[str], client_fingerprint: str) -> UserSession:
         """Get existing session or create new one"""
         async with self.lock:
-            if session_id and session_id in self.sessions:
-                session = self.sessions[session_id]
-                session.last_activity = datetime.now()
-                return session
+            if session_id:
+                if session_id in self.sessions:
+                    session = self.sessions[session_id]
+                    if session.client_fingerprint and session.client_fingerprint != client_fingerprint:
+                        raise PermissionError("Session fingerprint mismatch")
+                    session.last_activity = datetime.now()
+                    return session
             
             # Create new session
-            new_session_id = session_id or str(uuid.uuid4())
+            new_session_id = str(uuid.uuid4())
             now = datetime.now()
             session = UserSession(
                 session_id=new_session_id,
                 created_at=now,
-                last_activity=now
+                last_activity=now,
+                client_fingerprint=client_fingerprint
             )
             self.sessions[new_session_id] = session
             logger.info(f"Created new session: {new_session_id}")
@@ -180,8 +193,84 @@ class AppState:
         session.request_count += 1
         return True
 
+    async def check_ip_rate_limit(self, client_ip: str) -> bool:
+        now = datetime.now()
+        async with self.lock:
+            bucket = self.ip_rate.get(client_ip)
+            if not bucket:
+                self.ip_rate[client_ip] = {"count": 1, "start": now}
+                return True
+
+            window_duration = now - bucket["start"]
+            if window_duration > timedelta(minutes=1):
+                bucket["count"] = 1
+                bucket["start"] = now
+                return True
+
+            if bucket["count"] >= Config.MAX_REQUESTS_PER_MINUTE_PER_IP:
+                return False
+
+            bucket["count"] += 1
+            return True
+
 
 app_state = AppState()
+remote_generation_lock = asyncio.Lock()
+
+
+def get_client_ip(http_request: Request) -> str:
+    if Config.TRUST_PROXY_HEADERS:
+        xff = http_request.headers.get("x-forwarded-for", "").strip()
+        if xff:
+            return xff.split(",")[0].strip()
+    return (http_request.client.host if http_request.client else "unknown")
+
+
+def get_client_fingerprint(http_request: Request) -> str:
+    client_ip = get_client_ip(http_request)
+    user_agent = http_request.headers.get("user-agent", "")
+    raw = f"{client_ip}|{user_agent}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def require_allowed_origin(http_request: Request) -> None:
+    if not Config.STRICT_ORIGIN_CHECK:
+        return
+    if not Config.ALLOWED_ORIGINS:
+        raise HTTPException(
+            status_code=500,
+            detail={"error": "Server misconfigured: ALLOWED_ORIGINS is empty", "code": "SERVER_CONFIG_ERROR"}
+        )
+    origin = (http_request.headers.get("origin") or "").strip().rstrip("/")
+    if not origin or origin not in Config.ALLOWED_ORIGINS:
+        raise HTTPException(
+            status_code=403,
+            detail={"error": "Origin not allowed", "code": "ORIGIN_FORBIDDEN"}
+        )
+
+
+async def get_bound_session(http_request: Request, allow_create: bool) -> UserSession:
+    session_id = http_request.headers.get("X-Session-ID")
+    fingerprint = get_client_fingerprint(http_request)
+    if not session_id and Config.REQUIRE_SESSION_FOR_API and not allow_create:
+        raise HTTPException(
+            status_code=401,
+            detail={"error": "Missing X-Session-ID", "code": "SESSION_REQUIRED"}
+        )
+    try:
+        if allow_create:
+            return await app_state.get_or_create_session(session_id=session_id, client_fingerprint=fingerprint)
+        if not session_id:
+            raise HTTPException(
+                status_code=401,
+                detail={"error": "Missing X-Session-ID", "code": "SESSION_REQUIRED"}
+            )
+        return await app_state.get_or_create_session(session_id=session_id, client_fingerprint=fingerprint)
+    except PermissionError:
+        raise HTTPException(
+            status_code=403,
+            detail={"error": "Session does not belong to this client", "code": "SESSION_FORBIDDEN"}
+        )
 
 
 # ==================== Background Tasks ====================
@@ -227,10 +316,10 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=Config.ALLOWED_ORIGINS,
+    allow_origins=Config.ALLOWED_ORIGINS if Config.ALLOWED_ORIGINS else [],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Session-ID"],
 )
 
 
@@ -284,7 +373,7 @@ async def generate_motion_from_remote(request_data: dict) -> bytes:
     """
     uri = f"ws://{Config.REMOTE_WS_HOST}:{Config.REMOTE_WS_PORT}{Config.REMOTE_WS_PATH}"
     
-    try:
+    async def _request_remote() -> bytes:
         async with websockets.connect(
             uri,
             max_size=Config.WS_MAX_SIZE,
@@ -315,9 +404,13 @@ async def generate_motion_from_remote(request_data: dict) -> bytes:
                         status_code=500,
                         detail={"error": "Invalid response from server", "code": "INVALID_RESPONSE"}
                     )
-            
-            # Response is binary NPZ data
             return response
+
+    try:
+        if Config.SERIALIZE_REMOTE_REQUESTS:
+            async with remote_generation_lock:
+                return await _request_remote()
+        return await _request_remote()
             
     except asyncio.TimeoutError:
         raise HTTPException(
@@ -386,15 +479,20 @@ async def generate_motion(
     4. Stores motion data for the session
     5. Returns motion data to client
     """
-    # Get or create session
-    session_id = http_request.headers.get("X-Session-ID")
-    session = await app_state.get_or_create_session(session_id)
+    require_allowed_origin(http_request)
+    session = await get_bound_session(http_request, allow_create=False)
+    client_ip = get_client_ip(http_request)
     
     # Check rate limit
     if not app_state.check_rate_limit(session):
         raise HTTPException(
             status_code=429,
             detail={"error": "Rate limit exceeded - max 10 requests per minute", "code": "RATE_LIMIT"}
+        )
+    if not await app_state.check_ip_rate_limit(client_ip):
+        raise HTTPException(
+            status_code=429,
+            detail={"error": "Rate limit exceeded for IP", "code": "IP_RATE_LIMIT"}
         )
     
     # Prepare request for remote server
@@ -462,11 +560,8 @@ async def generate_motion(
 @app.get("/api/motions")
 async def list_motions(http_request: Request):
     """List all motions for the current session"""
-    session_id = http_request.headers.get("X-Session-ID")
-    if not session_id or session_id not in app_state.sessions:
-        return {"motions": [], "session_id": None}
-    
-    session = app_state.sessions[session_id]
+    require_allowed_origin(http_request)
+    session = await get_bound_session(http_request, allow_create=False)
     session.last_activity = datetime.now()
     
     motions_list = [
@@ -483,18 +578,15 @@ async def list_motions(http_request: Request):
     
     return {
         "motions": sorted(motions_list, key=lambda x: x["created_at"], reverse=True),
-        "session_id": session_id
+        "session_id": session.session_id
     }
 
 
 @app.get("/api/motions/{motion_id}")
 async def get_motion(motion_id: str, http_request: Request):
     """Get specific motion data by ID"""
-    session_id = http_request.headers.get("X-Session-ID")
-    if not session_id or session_id not in app_state.sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
-    
-    session = app_state.sessions[session_id]
+    require_allowed_origin(http_request)
+    session = await get_bound_session(http_request, allow_create=False)
     session.last_activity = datetime.now()
     
     if motion_id not in session.motions:
@@ -506,25 +598,34 @@ async def get_motion(motion_id: str, http_request: Request):
 @app.delete("/api/motions/{motion_id}")
 async def delete_motion(motion_id: str, http_request: Request):
     """Delete a specific motion"""
-    session_id = http_request.headers.get("X-Session-ID")
-    if not session_id or session_id not in app_state.sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
-    
-    session = app_state.sessions[session_id]
+    require_allowed_origin(http_request)
+    session = await get_bound_session(http_request, allow_create=False)
     
     if motion_id not in session.motions:
         raise HTTPException(status_code=404, detail="Motion not found")
     
     del session.motions[motion_id]
-    logger.info(f"Deleted motion {motion_id} from session {session_id}")
+    logger.info(f"Deleted motion {motion_id} from session {session.session_id}")
     
     return {"success": True, "message": "Motion deleted"}
 
 
+@app.delete("/api/motions")
+async def clear_motions(http_request: Request):
+    """Clear all generated motions for the current session"""
+    require_allowed_origin(http_request)
+    session = await get_bound_session(http_request, allow_create=False)
+    count = len(session.motions)
+    session.motions.clear()
+    logger.info(f"Cleared {count} motions for session {session.session_id}")
+    return {"success": True, "cleared": count}
+
+
 @app.post("/api/session")
-async def create_session():
-    """Create a new session"""
-    session = await app_state.get_or_create_session()
+async def create_session(http_request: Request):
+    """Create or resume a bound session for current client"""
+    require_allowed_origin(http_request)
+    session = await get_bound_session(http_request, allow_create=True)
     return {
         "session_id": session.session_id,
         "created_at": session.created_at.isoformat(),
@@ -536,7 +637,7 @@ async def create_session():
 async def get_config():
     """Get service configuration (safe values only)"""
     return {
-        "max_motion_length": 9.8,
+        "max_motion_length": 9.0,
         "min_motion_length": 0.1,
         "max_inference_steps": 1000,
         "min_inference_steps": 1,

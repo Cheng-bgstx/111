@@ -123,11 +123,9 @@ export class TrackingHelper {
     if (!this.motions[name]) {
       return false;
     }
-    if ((this.currentName === 'default' && this.currentDone) || name === 'default') {
-      this._startMotionFromCurrent(name, state);
-      return true;
-    }
-    return false;
+    // 允许随时切换：default 或 当前在 default 且已播完 或 动作执行中也可切到新动作（平滑过渡）
+    this._startMotionFromCurrent(name, state);
+    return true;
   }
 
   isReady() {

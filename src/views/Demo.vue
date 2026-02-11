@@ -26,62 +26,38 @@
   </div>
   <div v-if="!isSmallScreen" class="controls">
     <v-card class="controls-card">
-      <v-card-title>General Tracking Demo</v-card-title>
+      <v-card-title>文本生成动作</v-card-title>
       <v-card-text class="py-0 controls-body">
-          <v-btn
-            href="https://github.com/Axellwppr/humanoid-policy-viewer"
-            target="_blank"
-            variant="text"
-            size="small"
-            color="primary"
-            class="text-capitalize"
-          >
-            <v-icon icon="mdi-github" class="mr-1"></v-icon>
-            Demo Code
-          </v-btn>
-          <v-btn
-            href="https://github.com/Axellwppr/motion_tracking"
-            target="_blank"
-            variant="text"
-            size="small"
-            color="primary"
-            class="text-capitalize"
-          >
-            <v-icon icon="mdi-github" class="mr-1"></v-icon>
-            Training Code
-          </v-btn>
+        <!-- 使用说明 -->
+        <div class="usage-instructions">
+          <div class="usage-title">=== 文本生成动作工具 ===</div>
+          <div class="usage-line">输入文本描述 → 生成并加载动作</div>
+          <ul class="usage-bullets">
+            <li>动作执行中可随时输入新文本切换动作</li>
+            <li>动作完成后自动切换到 default 姿态</li>
+          </ul>
+          <div class="usage-cmds">
+            <div><strong>命令:</strong></div>
+            <div><strong>&lt;文本描述&gt;</strong> — 生成新动作</div>
+            <div><strong>default</strong> — 手动回到默认姿态</div>
+            <div><strong>last</strong> — 重新加载上一个生成的动作</div>
+            <div><strong>list</strong> — 显示所有已生成的动作</div>
+            <div><strong>clear</strong> — 清理当前会话下的生成动作</div>
+            <div><strong>status</strong> — 显示当前动作状态</div>
+            <div><strong>q/quit</strong> — 退出（网页模式请直接关闭页面）</div>
+          </div>
+          <div class="usage-footer">========================</div>
+        </div>
         <v-divider class="my-2"/>
-        <span class="status-name">Policy</span>
-        <div v-if="policyDescription" class="text-caption">{{ policyDescription }}</div>
-        <v-select
-          v-model="currentPolicy"
-          :items="policyItems"
-          class="mt-2"
-          label="Select policy"
-          density="compact"
-          hide-details
-          item-title="title"
-          item-value="value"
-          :disabled="isPolicyLoading || state !== 1"
-          @update:modelValue="onPolicyChange"
-        ></v-select>
-        <v-progress-linear
-          v-if="isPolicyLoading"
-          indeterminate
-          height="4"
-          color="primary"
-          class="mt-2"
-        ></v-progress-linear>
-        <v-alert
-          v-if="policyLoadError"
-          type="error"
-          variant="tonal"
-          density="compact"
-          class="mt-2"
-        >
-          {{ policyLoadError }}
-        </v-alert>
 
+        <!-- 快捷命令 -->
+        <div class="command-buttons">
+          <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1" @click="backToDefault">default</v-btn>
+          <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1 || !lastGeneratedMotion" @click="replayLastMotion">last</v-btn>
+          <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1" @click="listGeneratedMotions">list</v-btn>
+          <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1" @click="showStatus">status</v-btn>
+          <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1" @click="clearOldMotions">clear</v-btn>
+        </div>
         <v-divider class="my-2"/>
 
         <!-- Text-to-Motion Section -->
@@ -130,8 +106,8 @@
             <div v-if="showTextMotionPanel">
               <v-textarea
                 v-model="textPrompt"
-                label="Describe the motion you want"
-                placeholder="e.g., a person walks forward, a person jumps up and down"
+                label="输入文本描述"
+                placeholder="例如: a person walks forward"
                 density="compact"
                 hide-details
                 rows="2"
@@ -139,6 +115,22 @@
                 :disabled="state !== 1 || textMotionStatus === 'generating'"
                 @keydown.enter.prevent="handleEnterKey"
               ></v-textarea>
+              <div class="example-prompts mt-2">
+                <span class="text-caption mr-1">示例（点击即生成）:</span>
+                <div class="example-chips">
+                  <v-chip
+                    v-for="ex in examplePrompts"
+                    :key="ex"
+                    size="x-small"
+                    variant="tonal"
+                    class="example-chip"
+                    :disabled="state !== 1 || textMotionStatus === 'generating'"
+                    @click="runExample(ex)"
+                  >
+                    {{ ex }}
+                  </v-chip>
+                </div>
+              </div>
 
               <v-expand-transition>
                 <div v-if="showAdvancedOptions" class="advanced-options mt-2">
@@ -149,7 +141,7 @@
                         label="Duration (s)"
                         type="number"
                         min="0.1"
-                        max="9.8"
+                        max="9"
                         step="0.1"
                         density="compact"
                         hide-details
@@ -260,165 +252,32 @@
 
         <v-divider class="my-2"/>
 
-        <!-- Generated Motions List -->
-        <v-expand-transition>
-          <div v-if="generatedMotions.length > 0">
-            <div class="status-legend">
-              <span class="status-name">Generated Motions</span>
-              <v-chip size="x-small" variant="tonal">{{ generatedMotions.length }}</v-chip>
-            </div>
-            <div class="generated-motions-list">
-              <v-chip
-                v-for="motion in generatedMotions"
-                :key="motion.motion_id"
-                :color="currentMotion === motion.motion_id ? 'primary' : undefined"
-                :variant="currentMotion === motion.motion_id ? 'flat' : 'tonal'"
-                size="x-small"
-                class="motion-chip"
-                :disabled="!canSelectGeneratedMotion"
-                @click="playGeneratedMotion(motion)"
-              >
-                <v-icon icon="mdi-play-circle" size="x-small" class="mr-1"></v-icon>
-                {{ motion.name }}
-              </v-chip>
-            </div>
-            <v-divider class="my-2"/>
+        <!-- list: 已生成的动作（最多 10 个） -->
+        <div v-if="generatedMotions.length > 0" class="generated-section mt-2">
+          <div class="status-legend">
+            <span class="status-name">已生成的动作</span>
+            <v-chip size="x-small" variant="tonal">{{ generatedMotions.length }}{{ generatedMotions.length >= 10 ? '（已达上限）' : '' }}</v-chip>
           </div>
-        </v-expand-transition>
-
-        <div class="motion-status" v-if="trackingState">
-          <div class="status-legend" v-if="trackingState.available">
-            <span class="status-name">Current motion: {{ trackingState.currentName }}</span>
-          </div>
-        </div>
-
-          <v-progress-linear
-            v-if="shouldShowProgress"
-            :model-value="progressValue"
-            height="5"
-            color="primary"
-            rounded
-            class="mt-3 motion-progress-no-animation"
-          ></v-progress-linear>
-        <v-alert
-          v-if="showBackToDefault"
-          type="info"
-          variant="tonal"
-          density="compact"
-          class="mt-3"
-        >
-          Motion "{{ trackingState.currentName }}" finished. Return to the default pose before starting another clip.
-          <v-btn color="primary" block density="compact" @click="backToDefault">
-            Back to default pose
-          </v-btn>
-        </v-alert>
-
-        <v-alert
-          v-else-if="showMotionLockedNotice"
-          type="warning"
-          variant="tonal"
-          density="compact"
-          class="mt-3"
-        >
-          "{{ trackingState.currentName }}" is still playing. Wait until it finishes and returns to default pose before switching.
-        </v-alert>
-
-        <div v-if="showMotionSelect" class="motion-groups">
-          <div v-for="group in motionGroups" :key="group.title" class="motion-group">
-            <span class="status-name motion-group-title">{{ group.title }}</span>
+          <div class="text-caption mb-1">最多保留 10 个，当前 {{ generatedMotions.length }} 个。点击可重新播放。</div>
+          <div class="generated-motions-list">
             <v-chip
-              v-for="item in group.items"
-              :key="item.value"
-              :disabled="item.disabled"
-              :color="currentMotion === item.value ? 'primary' : undefined"
-              :variant="currentMotion === item.value ? 'flat' : 'tonal'"
-              class="motion-chip"
+              v-for="motion in generatedMotions"
+              :key="motion.motion_id"
+              :color="currentMotion === motion.motion_id ? 'primary' : undefined"
+              :variant="currentMotion === motion.motion_id ? 'flat' : 'tonal'"
               size="x-small"
-              @click="onMotionChange(item.value)"
+              class="motion-chip"
+              @click="playGeneratedMotion(motion)"
             >
-              {{ item.title }}
+              <v-icon icon="mdi-play-circle" size="x-small" class="mr-1"></v-icon>
+              {{ motion.name }}
             </v-chip>
           </div>
+          <v-divider class="my-2"/>
         </div>
 
-        <v-alert
-          v-else-if="!trackingState.available"
-          type="info"
-          variant="tonal"
-          density="compact"
-        >
-          Loading motion presets…
-        </v-alert>
-
-        <v-divider class="my-2"/>
-        <div class="upload-section">
-          <v-btn
-            v-if="!showUploadOptions"
-            variant="text"
-            density="compact"
-            color="primary"
-            class="upload-toggle"
-            @click="showUploadOptions = true"
-          >
-            Want to use customized motions?
-          </v-btn>
-          <template v-else>
-            <span class="status-name">Custom motions</span>
-            <v-file-input
-              v-model="motionUploadFiles"
-              label="Upload motion JSON"
-              density="compact"
-              hide-details
-              accept=".json,application/json"
-              prepend-icon="mdi-upload"
-              multiple
-              show-size
-              :disabled="state !== 1"
-              @update:modelValue="onMotionUpload"
-            ></v-file-input>
-            <div class="text-caption">
-              Read <a target="_blank" href="https://github.com/Axellwppr/humanoid-policy-viewer?tab=readme-ov-file#add-your-own-robot-policy-and-motions">readme</a> to learn how to create motion JSON files from GMR.<br/>
-              Each file should be a single clip (same schema as motions/default.json). File name becomes the motion name (prefixed with [new]). Duplicate names are ignored.
-            </div>
-            <v-alert
-              v-if="motionUploadMessage"
-              :type="motionUploadType"
-              variant="tonal"
-              density="compact"
-            >
-              {{ motionUploadMessage }}
-            </v-alert>
-          </template>
-        </div>
-
-        <v-divider class="my-2"/>
-        <div class="status-legend follow-controls">
-          <span class="status-name">Camera follow</span>
-          <v-btn
-            size="x-small"
-            variant="tonal"
-            color="primary"
-            :disabled="state !== 1"
-            @click="toggleCameraFollow"
-          >
-            {{ cameraFollowEnabled ? 'On' : 'Off' }}
-          </v-btn>
-        </div>
-        <div class="status-legend">
-          <span class="status-name">Render scale</span>
-          <span class="text-caption">{{ renderScaleLabel }}</span>
-          <span class="status-name">Sim Freq</span>
-          <span class="text-caption">{{ simStepLabel }}</span>
-        </div>
-        <v-slider
-          v-model="renderScale"
-          min="0.5"
-          max="2.0"
-          step="0.1"
-          density="compact"
-          hide-details
-          @update:modelValue="onRenderScaleChange"
-        ></v-slider>
+        <!-- status 显示 -->
+        <div v-if="statusMessage" class="status-message text-caption mt-2">{{ statusMessage }}</div>
       </v-card-text>
       <v-card-actions>
         <v-btn color="primary" block @click="reset">Reset</v-btn>
@@ -454,6 +313,8 @@ import loadMujoco from 'mujoco-js';
 
 // Text-to-Motion API configuration
 const TEXT_MOTION_API_URL = import.meta.env.VITE_TEXT_MOTION_API_URL || 'http://localhost:8080';
+const SESSION_STORAGE_KEY = 'text_motion_session_id';
+const MAX_GENERATED_MOTIONS = 10;
 
 export default {
   name: 'DemoPage',
@@ -509,6 +370,7 @@ export default {
     resize_listener: null,
     // Text-to-Motion related data
     sessionId: null,
+    sessionStorageKey: SESSION_STORAGE_KEY,
     textPrompt: '',
     showTextMotionPanel: false,
     showAdvancedOptions: false,
@@ -520,7 +382,17 @@ export default {
     transitionSteps: 100,
     adaptiveSmooth: true,
     generatedMotions: [],
-    generatedMotionMap: new Map()
+    generatedMotionMap: new Map(),
+    lastGeneratedMotion: null,
+    statusMessage: '',
+    autoDefaultTriggered: false,
+    examplePrompts: [
+      'a person is jogging on the spot',
+      'person is boxing, they throw an upper cut then defend and dodge then they throw a few right jabs',
+      'a person side steps to the right and then to the left, and back to the middle',
+      'walk in a circle',
+      'jump jacks'
+    ]
   }),
   computed: {
     shouldShowProgress() {
@@ -634,8 +506,7 @@ export default {
              this.textMotionStatus !== 'generating';
     },
     canSelectGeneratedMotion() {
-      const state = this.trackingState;
-      return state && state.available && state.isDefault && state.currentDone;
+      return this.state === 1 && this.demo?.policyRunner?.tracking;
     }
   },
   methods: {
@@ -696,19 +567,36 @@ export default {
 
     // ==================== Text-to-Motion Methods ====================
 
+    buildSessionHeaders(includeContentType = false) {
+      const headers = {};
+      if (includeContentType) {
+        headers['Content-Type'] = 'application/json';
+      }
+      if (this.sessionId) {
+        headers['X-Session-ID'] = this.sessionId;
+      }
+      return headers;
+    },
+
     async initTextMotionSession() {
-      // Initialize session with the text-to-motion API
+      // Initialize or resume session with the text-to-motion API
       try {
+        const stored = sessionStorage.getItem(this.sessionStorageKey);
+        if (stored) {
+          this.sessionId = stored;
+        }
         const response = await fetch(`${TEXT_MOTION_API_URL}/api/session`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
+          headers: this.buildSessionHeaders(true)
         });
 
         if (response.ok) {
           const data = await response.json();
           this.sessionId = data.session_id;
+          sessionStorage.setItem(this.sessionStorageKey, this.sessionId);
           this.textMotionStatus = 'connected';
           console.log('[TextMotion] Session created:', this.sessionId);
+          await this.loadGeneratedMotionsFromServer();
         } else {
           console.warn('[TextMotion] Failed to create session');
           this.textMotionStatus = 'disconnected';
@@ -726,12 +614,105 @@ export default {
       }
     },
 
+    async handleTextCommand(prompt) {
+      const cmd = prompt.trim().toLowerCase();
+      if (!cmd) {
+        return false;
+      }
+      if (cmd === 'default') {
+        this.backToDefault();
+        this.statusMessage = '已切换到 default。';
+        return true;
+      }
+      if (cmd === 'last') {
+        this.replayLastMotion();
+        this.statusMessage = this.lastGeneratedMotion ? '已加载上一个生成动作。' : '暂无上一个生成动作。';
+        return true;
+      }
+      if (cmd === 'list') {
+        this.listGeneratedMotions();
+        return true;
+      }
+      if (cmd === 'clear') {
+        await this.clearOldMotions();
+        return true;
+      }
+      if (cmd === 'status') {
+        this.showStatus();
+        return true;
+      }
+      if (cmd === 'q' || cmd === 'quit') {
+        this.statusMessage = '网页模式无需 quit，请直接关闭页面标签。';
+        setTimeout(() => { this.statusMessage = ''; }, 4000);
+        return true;
+      }
+      return false;
+    },
+
+    async loadGeneratedMotionsFromServer() {
+      if (!this.sessionId) {
+        return;
+      }
+      try {
+        const listResp = await fetch(`${TEXT_MOTION_API_URL}/api/motions`, {
+          method: 'GET',
+          headers: this.buildSessionHeaders(false)
+        });
+        if (!listResp.ok) {
+          return;
+        }
+        const payload = await listResp.json();
+        const items = Array.isArray(payload.motions) ? payload.motions : [];
+        if (items.length === 0) {
+          return;
+        }
+
+        const fetched = [];
+        for (const item of items) {
+          const motionId = item.motion_id;
+          if (!motionId) {
+            continue;
+          }
+          const motionResp = await fetch(`${TEXT_MOTION_API_URL}/api/motions/${motionId}`, {
+            method: 'GET',
+            headers: this.buildSessionHeaders(false)
+          });
+          if (!motionResp.ok) {
+            continue;
+          }
+          const motionData = await motionResp.json();
+          fetched.push({
+            ...motionData,
+            motion_id: motionId,
+            text_prompt: item.text_prompt ?? motionData.text_prompt ?? ''
+          });
+        }
+
+        fetched.sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+        for (const motionData of fetched) {
+          this.generatedMotionMap.set(motionData.motion_id, motionData);
+          this.addMotionToTracking(motionData);
+        }
+        await this.trimGeneratedMotions(MAX_GENERATED_MOTIONS);
+        this.generatedMotions = Array.from(this.generatedMotionMap.values());
+        if (this.generatedMotions.length > 0) {
+          this.lastGeneratedMotion = this.generatedMotions[this.generatedMotions.length - 1];
+        }
+      } catch (error) {
+        console.warn('[TextMotion] Failed to restore motions:', error.message);
+      }
+    },
+
     async generateMotionFromText() {
       // Generate motion from text description
       if (!this.canGenerateMotion) return;
 
       const prompt = this.textPrompt.trim();
       if (!prompt) return;
+      if (await this.handleTextCommand(prompt)) {
+        this.textPrompt = '';
+        return;
+      }
 
       this.textMotionStatus = 'generating';
       this.textMotionError = '';
@@ -751,10 +732,7 @@ export default {
 
         const response = await fetch(`${TEXT_MOTION_API_URL}/api/generate`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Session-ID': this.sessionId || ''
-          },
+          headers: this.buildSessionHeaders(true),
           body: JSON.stringify(requestBody)
         });
 
@@ -773,6 +751,7 @@ export default {
 
         this.generatedMotionMap.set(data.motion_id, motionData);
         this.generatedMotions = Array.from(this.generatedMotionMap.values());
+        await this.trimGeneratedMotions(MAX_GENERATED_MOTIONS);
 
         // Update tracking helper with the new motion
         this.addMotionToTracking(motionData);
@@ -780,9 +759,8 @@ export default {
         this.textMotionSuccess = `Generated: "${prompt.substring(0, 30)}${prompt.length > 30 ? '...' : ''}"`;
         this.textPrompt = ''; // Clear input
 
-        // Auto-play the generated motion
+        this.lastGeneratedMotion = motionData;
         this.playGeneratedMotion(motionData);
-
         this.textMotionStatus = 'connected';
 
       } catch (error) {
@@ -817,18 +795,84 @@ export default {
     },
 
     playGeneratedMotion(motionData) {
-      // Play a generated motion
-      if (!this.canSelectGeneratedMotion) {
-        console.warn('[TextMotion] Cannot play motion now - wait for current motion to finish');
-        return;
-      }
-
+      if (!this.demo?.policyRunner?.tracking || !motionData?.motion_id) return;
       const accepted = this.requestMotion(motionData.motion_id);
       if (accepted) {
         this.currentMotion = motionData.motion_id;
         this.updateTrackingState();
+      }
+    },
+    runExample(prompt) {
+      this.textPrompt = prompt;
+      this.generateMotionFromText();
+    },
+    replayLastMotion() {
+      if (this.lastGeneratedMotion) {
+        this.playGeneratedMotion(this.lastGeneratedMotion);
+      }
+    },
+    listGeneratedMotions() {
+      const names = this.generatedMotions.map((m) => m.name).filter(Boolean);
+      if (names.length === 0) {
+        this.statusMessage = '当前无已生成动作。';
       } else {
-        console.warn('[TextMotion] Motion request rejected');
+        this.statusMessage = `已生成动作(${names.length}/${MAX_GENERATED_MOTIONS}): ${names.join(' | ')}`;
+      }
+      setTimeout(() => { this.statusMessage = ''; }, 5000);
+    },
+    showStatus() {
+      const s = this.trackingState;
+      if (!s || !s.available) {
+        this.statusMessage = '状态: 未就绪';
+        return;
+      }
+      this.statusMessage = `当前动作: ${s.currentName}，${s.currentDone ? '已结束' : '播放中'}${s.isDefault ? '（默认姿态）' : ''}，已生成: ${this.generatedMotions.length}/${MAX_GENERATED_MOTIONS}`;
+      setTimeout(() => { this.statusMessage = ''; }, 4000);
+    },
+    async clearOldMotions() {
+      try {
+        if (this.sessionId) {
+          await fetch(`${TEXT_MOTION_API_URL}/api/motions`, {
+            method: 'DELETE',
+            headers: this.buildSessionHeaders(false)
+          });
+        }
+      } catch (error) {
+        console.warn('[TextMotion] clear api failed:', error.message);
+      }
+      this.generatedMotionMap = new Map();
+      this.generatedMotions = [];
+      this.lastGeneratedMotion = null;
+      this.statusMessage = '已清理当前会话下的生成动作。';
+      setTimeout(() => { this.statusMessage = ''; }, 3000);
+    },
+    async trimGeneratedMotions(maxCount = MAX_GENERATED_MOTIONS) {
+      const items = Array.from(this.generatedMotionMap.values());
+      if (items.length <= maxCount) {
+        return;
+      }
+      items.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+      const keep = items.slice(0, maxCount);
+      const keepIds = new Set(keep.map((m) => m.motion_id));
+      const removed = items.filter((m) => !keepIds.has(m.motion_id));
+      this.generatedMotionMap = new Map(keep.map((m) => [m.motion_id, m]));
+      this.generatedMotions = Array.from(this.generatedMotionMap.values());
+      if (this.lastGeneratedMotion && !keepIds.has(this.lastGeneratedMotion.motion_id)) {
+        this.lastGeneratedMotion = this.generatedMotions[this.generatedMotions.length - 1] ?? null;
+      }
+      if (removed.length > 0) {
+        for (const motion of removed) {
+          try {
+            if (this.sessionId && motion.motion_id) {
+              await fetch(`${TEXT_MOTION_API_URL}/api/motions/${motion.motion_id}`, {
+                method: 'DELETE',
+                headers: this.buildSessionHeaders(false)
+              });
+            }
+          } catch (error) {
+            console.warn('[TextMotion] prune api failed:', error.message);
+          }
+        }
       }
     },
 
@@ -1040,6 +1084,21 @@ export default {
       if (current && this.currentMotion !== current) {
         this.currentMotion = current;
       }
+
+      // 自动回 default：非 default 动作播完后，自动切回 default 姿态（仅触发一次）
+      if (state.available && !state.isDefault && state.currentDone) {
+        if (!this.autoDefaultTriggered) {
+          this.autoDefaultTriggered = true;
+          const accepted = this.requestMotion('default');
+          if (accepted) {
+            this.currentMotion = 'default';
+            this.statusMessage = '动作已完成，自动切换到 default 姿态。';
+            setTimeout(() => { this.statusMessage = ''; }, 3000);
+          }
+        }
+      } else {
+        this.autoDefaultTriggered = false;
+      }
     },
     updatePerformanceStats() {
       if (!this.demo) {
@@ -1142,6 +1201,51 @@ export default {
   max-height: calc(100vh - 160px);
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+.usage-instructions {
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.usage-title,
+.usage-footer {
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.usage-line,
+.usage-cmds {
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.usage-bullets {
+  margin: 4px 0 2px 16px;
+  padding: 0;
+  font-size: 0.78rem;
+}
+
+.command-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.example-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.example-chip {
+  text-transform: none;
+  white-space: normal;
 }
 
 .motion-status {
