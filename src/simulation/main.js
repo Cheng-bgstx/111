@@ -109,8 +109,7 @@ export class MuJoCoDemo {
     await this.reloadScene(mjcf_path);
     this.updateFollowBodyId();
     this.timestep = this.model.opt.timestep;
-    // 保持最高仿真帧率：decimation=1（每帧一次物理步进）
-    this.decimation = 1;
+    this.decimation = Math.max(1, Math.round(0.02 / this.timestep));
 
     console.log('timestep:', this.timestep, 'decimation:', this.decimation);
 
@@ -373,7 +372,7 @@ export class MuJoCoDemo {
       return;
     }
     const now = performance.now();
-    if (now - this._lastRenderTime < 16) {
+    if (now - this._lastRenderTime < 30) {
       return;
     }
     this._lastRenderTime = now;

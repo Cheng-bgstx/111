@@ -773,15 +773,18 @@ export default {
     },
 
     addMotionToTracking(motionData) {
-      // 将生成的动作加入 TrackingHelper。关节顺序说明见 trackingHelper.js convertMotionJointPosPolicyToDataset。
-      // 当前按「后端返回 dataset（LAFAN）顺序」处理，直接使用；若动作错位可改为先调用 tracking.convertMotionJointPosPolicyToDataset(motionData.joint_pos)。
+      // 将生成的动作加入 TrackingHelper。关节顺序见项目根目录 JOINT_MAPPING.md。
+      // 后端返回 joint_pos 为 policy（Isaac）顺序，Tracking 内部 ref 需 dataset 顺序，故此处做转换以与仿真一致。
       if (!this.demo?.policyRunner?.tracking) {
         console.warn('[TextMotion] Tracking helper not available');
         return;
       }
 
+      const tracking = this.demo.policyRunner.tracking;
+      const jointPosForRef = tracking.convertMotionJointPosPolicyToDataset(motionData.joint_pos);
+
       const motionClip = {
-        joint_pos: motionData.joint_pos,
+        joint_pos: jointPosForRef,
         root_pos: motionData.root_pos,
         root_quat: motionData.root_quat
       };
