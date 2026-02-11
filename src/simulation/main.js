@@ -373,7 +373,7 @@ export class MuJoCoDemo {
       return;
     }
     const now = performance.now();
-    if (now - this._lastRenderTime < 30) {
+    if (now - this._lastRenderTime < 16) {
       return;
     }
     this._lastRenderTime = now;

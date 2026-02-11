@@ -292,7 +292,9 @@ export class TrackingHelper {
 
   /**
    * Convert motion joint_pos from policy (Isaac) order to dataset order.
-   * Use this when adding motion from sources that use policy order (e.g. Text-to-Motion API).
+   * 关节映射位置：policy 顺序见 tracking_policy_*.json 的 policy_joint_names，
+   * dataset 顺序见同文件 tracking.dataset_joint_names；本文件 _buildPolicyToDatasetMap / _mapPolicyJointPosToDataset 实现转换。
+   * 调用处：Demo.vue addMotionToTracking（当后端返回 policy 顺序时使用）。
    * @param {Array<Array<number>|Float32Array>} jointPosRows - One row per frame, each row in policy order
    * @returns {Array<Float32Array>} Rows in dataset order, or original rows if mapping unavailable
    */
