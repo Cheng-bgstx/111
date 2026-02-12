@@ -2,15 +2,15 @@
   <div id="mujoco-container"></div>
   <div class="global-alerts">
     <v-alert
-      v-if="isSmallScreen"
-      v-model="showSmallScreenAlert"
-      type="warning"
+      v-if="isSmallScreen && showSmallScreenAlert"
+      type="info"
       variant="flat"
       density="compact"
       closable
       class="small-screen-alert"
+      @click:close="showSmallScreenAlert = false"
     >
-      Screen too small. The control panel is unavailable on small screens. Please use a desktop device.
+      手机版：下方为控制面板，可输入文本指令或使用快捷命令操作。
     </v-alert>
     <v-alert
       v-if="isSafari"
@@ -24,7 +24,7 @@
       Safari has lower memory limits, which can cause WASM to crash.
     </v-alert>
   </div>
-  <div v-if="!isSmallScreen" class="controls">
+  <div class="controls" :class="{ 'controls--mobile': isSmallScreen }">
     <v-card class="controls-card">
       <v-card-title class="controls-title">文本生成动作</v-card-title>
       <v-card-text class="py-0 controls-body">
@@ -1237,6 +1237,53 @@ export default {
   right: 20px;
   width: 340px;
   z-index: 1000;
+}
+
+/* 手机/小屏：底部抽屉式控制面板，便于输入文本指令 */
+@media (max-width: 499px), (max-height: 699px) {
+  .controls {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 72vh;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    display: flex;
+    flex-direction: column;
+  }
+  .controls-card {
+    max-height: 72vh;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+  .controls-body {
+    max-height: none;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* 触控友好：输入框 16px 避免 iOS 聚焦放大 */
+  .controls--mobile .text-to-motion-section :deep(textarea),
+  .controls--mobile .text-to-motion-section :deep(.v-field__input) {
+    font-size: 16px !important;
+    min-height: 44px;
+  }
+  .controls--mobile .command-buttons .v-btn {
+    min-height: 44px;
+    padding: 0 14px;
+  }
+  .controls--mobile .v-btn.flex-grow-1 {
+    min-height: 44px;
+  }
+  .controls--mobile .example-chip {
+    min-height: 40px;
+  }
 }
 
 .global-alerts {
