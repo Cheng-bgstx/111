@@ -28,7 +28,8 @@
     <v-card class="controls-card">
       <v-card-title class="controls-title">
         <span class="controls-title-main">SHELL:</span>
-        <span class="controls-title-sub">Semantic Hierarchical Embodied Language-to-Motion with Low-level Tracking</span>
+        <span class="controls-title-sub">Semantic Hierarchical Embodied Language-to-Motion</span>
+        <span class="controls-title-sub">with Low-level Tracking</span>
       </v-card-title>
       <v-card-text class="py-0 controls-body">
         <section class="usage-instructions">
@@ -1410,10 +1411,12 @@ export default {
   color: rgba(0, 0, 0, 0.88);
 }
 .controls-title-sub {
+  display: block;
   font-size: 0.7rem;
   font-weight: 500;
   color: rgba(0, 0, 0, 0.65);
   max-width: 100%;
+  text-align: center;
 }
 
 .controls-body {
