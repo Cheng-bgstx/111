@@ -1510,7 +1510,7 @@ export default {
 /* Same font size as generated list (.motion-chip) below "Tap to replay" */
 .example-chip--short {
   flex: 0 0 auto;
-  font-size: 0.7rem;
+  font-size: 0.3rem;
   line-height: 1.2;
   min-height: 18px;
   padding: 2px 5px;
@@ -1519,7 +1519,7 @@ export default {
 .example-chip--long {
   flex: 1 1 100%;
   min-width: 0;
-  font-size: 0.7rem;
+  font-size: 0.3rem;
   line-height: 1.4;
   min-height: 42px;
   padding: 6px 8px;
