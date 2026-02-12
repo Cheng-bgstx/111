@@ -1,10 +1,15 @@
-# Humanoid Policy Viewer
+# SHELL: Semantic Hierarchical Embodied Language-to-Motion with Low-level Tracking
 
-Single-page Vue 3 + Vuetify app that runs a MuJoCo WebAssembly scene in the
-browser and drives it with an ONNX policy. The default setup loads the G1
-scene, policy, and motion clips from `public/examples`.
+Browser-based demo for language-conditioned humanoid whole-body control. The app runs a MuJoCo WebAssembly scene driven by an ONNX tracking policy and connects to a text-to-motion backend for language-driven motion generation.
 
-Demos: [Humanoid Policy Viewer](https://motion-tracking.axell.top/), [GentleHumanoid Web Demo](https://gentle-humanoid.axell.top/)
+## Overview
+
+Natural language is an appealing interface for humanoid robots: it is expressive and describes goals and constraints directly. This project implements a deployment-oriented **edge–cloud** setup: a diffusion-based text-to-motion generator produces **robot-native** motion references on the server, while a lightweight tracking controller runs in the browser (and can run on-robot) in closed loop. The motion representation is a compact **38D velocity-based** format (joint positions, root velocity, height, and rotation) that is retargeting-free and tracker-friendly, bridging generative planning and real-time execution. The system is validated in simulation and on real hardware.
+
+**Main contributions:**
+- Edge–cloud language-to-humanoid control with streaming motion references and on-board tracking.
+- Robot-native 38D motion interface: retargeting-free, streamable, and compatible with receding-horizon trackers.
+- Evaluations in simulation and on a real humanoid robot.
 
 ## Quick start
 
@@ -13,58 +18,32 @@ npm install
 npm run dev
 ```
 
+The default setup loads the G1 scene, ONNX policy, and motion clips from `public/examples`. Configure the text-to-motion API URL via environment (e.g. `VITE_TEXT_MOTION_API_URL` for the frontend; see `text_motion_api/.env.example` for the gateway).
+
 ## Project structure
 
-- `src/views/Demo.vue` - UI controls for the live demo
-- `src/simulation/main.js` - bootstraps MuJoCo, Three.js renderer, and policy loop
-- `src/simulation/mujocoUtils.js` - scene/policy loading utilities and filesystem preloading
-- `src/simulation/policyRunner.js` - ONNX inference wrapper and observation pipeline
-- `node_modules/mujoco-js/` - MuJoCo wasm runtime (npm package)
-- `public/examples/scenes/` - MJCF files + meshes staged into MuJoCo's MEMFS
-- `public/examples/checkpoints/` - policy config JSON, ONNX file, and motion clips
+| Path | Description |
+|------|-------------|
+| `src/views/Demo.vue` | Main UI: simulation controls, text-to-motion panel, shortcuts |
+| `src/simulation/main.js` | MuJoCo + Three.js + policy loop bootstrap |
+| `src/simulation/policyRunner.js` | ONNX inference and tracking pipeline |
+| `src/simulation/trackingHelper.js` | Motion playback and policy/dataset joint order mapping |
+| `text_motion_api/` | FastAPI gateway: sessions, rate limits, proxy to motion generation backend |
+| `public/examples/` | Scenes (MJCF), checkpoints (policy JSON + ONNX), motion clips |
 
-## Add your own robot, policy and motions
+## Adding a robot or policy
 
-1. Add your MJCF + assets.
-   - Create `public/examples/scenes/<robot>/`.
-   - Put your MJCF as `public/examples/scenes/<robot>/<robot>.xml`.
-   - Add all meshes/textures used by the MJCF into the same folder.
-   - Append every file path to `public/examples/scenes/files.json` so the
-     loader can preload them into `/working/` in the wasm filesystem.
+1. **Scene:** Add MJCF and assets under `public/examples/scenes/<robot>/`, and list paths in `public/examples/scenes/files.json`.
+2. **Policy:** Add `tracking_policy.json` and the ONNX under `public/examples/checkpoints/<robot>/`. Ensure `policy_joint_names` and `obs_config` match your MJCF and `observationHelpers.js`.
+3. **Motions (optional):** Add `motions.json` and clip files; set `tracking.motions_path` in the policy JSON.
 
-2. Add your policy config and ONNX.
-   - Create `public/examples/checkpoints/<robot>/tracking_policy.json`.
-   - Place the ONNX model at `public/examples/checkpoints/<robot>/tracking_policy.onnx`.
-   - In the JSON, make sure these fields are correct:
-     - `onnx.path` points to your ONNX file (example: `./examples/checkpoints/<robot>/tracking_policy.onnx`)
-     - `policy_joint_names` matches the joint names in your MJCF actuators
-     - `obs_config` uses observation names that exist in `src/simulation/observationHelpers.js`
-     - `action_scale`, `stiffness`, `damping`, and `default_joint_pos` lengths
-       match `policy_joint_names`
-   - You need to adapt the observation helper functions in
-     `src/simulation/observationHelpers.js` if your policy uses
-     different observations than the built-in ones, and modify `src/simulation/policyRunner.js` to control the robot.
+Joint order: the policy uses `policy_joint_names` for simulation I/O; tracking references use `dataset_joint_names` (see policy JSON). The viewer converts between them in `trackingHelper.js`.
 
-3. (Optional) Add tracking motions.
-   - Add an index at `public/examples/checkpoints/<robot>/motions.json`.
-   - Put per-motion clips in `public/examples/checkpoints/<robot>/motions/`.
-   - In `tracking_policy.json`, set `tracking.motions_path` to the index file.
-   - The app downloads all motion clips listed in the index when the policy loads.
-   - The index uses this shape:
-     - `format`: `tracking-motion-index-v1`
-     - `base_path`: relative path to the motions folder (example: `./motions`)
-     - `motions`: list of `{ name, file }` entries
-   - Each motion clip file must include a `default` clip overall and each clip contains:
-     - `joint_pos` (or `jointPos`): per-frame joint arrays
-     - `root_pos` (or `rootPos`): per-frame root positions
-     - `root_quat` (or `rootQuat`): per-frame root quaternions (w, x, y, z)
+## Configuration
 
-4. Point the app to your robot and policy.
-   - Update `src/simulation/main.js`:
-     - `this.currentPolicyPath = './examples/checkpoints/<robot>/tracking_policy.json'`
-     - `await this.reloadScene('<robot>/<robot>.xml')`
-     - `await this.reloadPolicy('./examples/checkpoints/<robot>/tracking_policy.json')`
+- **Frontend:** Set `VITE_TEXT_MOTION_API_URL` (and optionally `VITE_API_KEY`) at build time for the text-to-motion gateway.
+- **Gateway:** See `text_motion_api/.env.example` for `REMOTE_WS_*`, rate limits, CORS origins, and optional API key. Run the gateway with `uvicorn main:app` or the provided scripts.
 
-If you want to keep multiple robots around, you can expose a selector in
-`src/views/Demo.vue` and call `demo.reloadScene(...)` and `demo.reloadPolicy(...)`
-from there.
+## License
+
+See repository for license and attribution.

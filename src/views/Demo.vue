@@ -27,11 +27,22 @@
   <div class="controls" :class="{ 'controls--mobile': isSmallScreen }">
     <v-card class="controls-card">
       <v-card-title class="controls-title">
-        <span class="controls-title-main">SHELL:</span>
+        <div class="controls-title-row">
+          <span class="controls-title-main">SHELL:</span>
+          <a
+            href="https://github.com/Cheng-bgstx/111"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="controls-title-github"
+            aria-label="GitHub repository"
+          >
+            <v-icon icon="mdi-github" size="22" />
+          </a>
+        </div>
         <span class="controls-title-sub">Semantic Hierarchical Embodied Language-to-Motion</span>
         <span class="controls-title-sub">with Low-level Tracking</span>
       </v-card-title>
-      <v-card-text class="py-0 controls-body">
+      <v-card-text class="py-0 controls-body flex-grow-1 overflow-y-auto">
         <section class="usage-instructions">
           <h3 class="usage-heading">Usage</h3>
           <ul class="usage-bullets">
@@ -284,7 +295,7 @@
 
         <div v-if="statusMessage" class="status-message text-caption mt-2">{{ statusMessage }}</div>
       </v-card-text>
-      <v-card-actions>
+      <v-card-actions class="controls-actions">
         <v-btn color="primary" block @click="reset">Reset</v-btn>
       </v-card-actions>
     </v-card>
@@ -1386,6 +1397,8 @@ export default {
 }
 
 .controls-card {
+  display: flex;
+  flex-direction: column;
   max-height: calc(100vh - 32px);
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
@@ -1404,11 +1417,27 @@ export default {
   background: linear-gradient(180deg, rgba(25, 118, 210, 0.05) 0%, transparent 100%);
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   line-height: 1.3;
+  flex-shrink: 0;
+}
+.controls-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 .controls-title-main {
   font-size: 1rem;
   font-weight: 700;
   color: rgba(0, 0, 0, 0.88);
+}
+.controls-title-github {
+  color: rgba(0, 0, 0, 0.5);
+  text-decoration: none;
+  display: inline-flex;
+  transition: color 0.2s;
+}
+.controls-title-github:hover {
+  color: rgba(0, 0, 0, 0.85);
 }
 .controls-title-sub {
   display: block;
@@ -1420,10 +1449,14 @@ export default {
 }
 
 .controls-body {
-  max-height: calc(100vh - 100px);
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 6px 10px 10px;
+}
+.controls-actions {
+  flex-shrink: 0;
 }
 
 .section-divider {
