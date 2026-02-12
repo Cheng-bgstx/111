@@ -1297,13 +1297,13 @@ export default {
     bottom: 0;
     left: 0;
     width: 100%;
-    max-height: 44vh;
+    max-height: 30vh;
     padding-bottom: env(safe-area-inset-bottom, 0);
     display: flex;
     flex-direction: column;
   }
   .controls-card {
-    max-height: 44vh;
+    max-height: 30vh;
     border-radius: 16px 16px 0 0;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
     display: flex;
