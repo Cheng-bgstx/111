@@ -29,18 +29,33 @@
       <v-card-title class="controls-title">
         <div class="controls-title-row">
           <span class="controls-title-main">SHELL:</span>
+        </div>
+        <span class="controls-title-sub">Semantic Hierarchical Embodied Language-to-Motion</span>
+        <span class="controls-title-sub">with Low-level Tracking</span>
+        <div class="link-buttons">
+          <span class="link-btn link-btn--disabled" aria-disabled="true">
+            <v-icon icon="mdi-file-document-outline" size="18" />
+            <span>Paper</span>
+          </span>
+          <span class="link-btn link-btn--disabled" aria-disabled="true">
+            <v-icon icon="mdi-sigma" size="18" />
+            <span>arXiv (Coming Soon)</span>
+          </span>
           <a
             href="https://github.com/Cheng-bgstx/111"
             target="_blank"
             rel="noopener noreferrer"
-            class="controls-title-github"
-            aria-label="GitHub repository"
+            class="link-btn link-btn--code"
+            aria-label="Code – GitHub repository"
           >
-            <v-icon icon="mdi-github" size="22" />
+            <v-icon icon="mdi-github" size="18" />
+            <span>Code</span>
           </a>
+          <span class="link-btn link-btn--disabled" aria-disabled="true">
+            <v-icon icon="mdi-twitter" size="18" />
+            <span>Twitter</span>
+          </span>
         </div>
-        <span class="controls-title-sub">Semantic Hierarchical Embodied Language-to-Motion</span>
-        <span class="controls-title-sub">with Low-level Tracking</span>
       </v-card-title>
       <v-card-text class="py-0 controls-body flex-grow-1 overflow-y-auto">
         <section class="usage-instructions">
@@ -608,7 +623,7 @@ export default {
       return headers;
     },
 
-    /** 服务端返回 403 SESSION_FORBIDDEN 时清除本地会话并提示（如更换设备/网络导致） */
+    /** Clear local session when server returns 403 SESSION_FORBIDDEN */
     clearSessionForbidden() {
       this.sessionId = null;
       try {
@@ -851,8 +866,7 @@ export default {
     },
 
     addMotionToTracking(motionData) {
-      // 将生成的动作加入 TrackingHelper。关节顺序见项目根目录 JOINT_MAPPING.md。
-      // 后端返回 joint_pos 为 policy（Isaac）顺序，Tracking 内部 ref 需 dataset 顺序，故此处做转换以与仿真一致。
+      // Add motion to TrackingHelper; convert policy-order joint_pos to dataset order for ref.
       if (!this.demo?.policyRunner?.tracking) {
         console.warn('[TextMotion] Tracking helper not available');
         return;
@@ -903,7 +917,7 @@ export default {
     showStatus() {
       const s = this.trackingState;
       if (!s || !s.available) {
-        this.statusMessage = '状态: 未就绪';
+        this.statusMessage = 'Status: not ready';
         return;
       }
       this.statusMessage = `Motion: ${s.currentName}; ${s.currentDone ? 'done' : 'playing'}${s.isDefault ? ' (default)' : ''}; generated: ${this.generatedMotions.length}/${MAX_GENERATED_MOTIONS}`;
@@ -1196,7 +1210,7 @@ export default {
 
       const isUpMotion = state.currentName === 'fallAndGetUp2_subject2' || state.currentName === 'fallAndGetUp1_subject1';
 
-      // 站起监测：up 后按仿真姿态判「站直」再切 default（与 sim2real UprightDetector 一致）
+      // Upright detection after "up": switch to default when standing
       if (this.isUprightMonitoring && state.available && isUpMotion && this.demo.isUpright) {
         if (this.demo.isUpright({ thresholdDeg: 15, kneeThresholdRad: 0.6 })) {
           this.uprightCheckCount += 1;
@@ -1221,7 +1235,7 @@ export default {
         this.uprightCheckCount = 0;
       }
 
-      // 自动回 default：非 default 动作播完后，自动切回 default 姿态（仅触发一次）
+      // Auto switch to default when non-default motion finishes (once)
       if (state.available && !state.isDefault && state.currentDone) {
         if (!this.autoDefaultTriggered) {
           this.autoDefaultTriggered = true;
@@ -1344,6 +1358,14 @@ export default {
   .controls--mobile .controls-title-sub {
     font-size: 0.65rem;
   }
+  .controls--mobile .link-buttons {
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .controls--mobile .link-btn {
+    padding: 5px 10px;
+    font-size: 0.7rem;
+  }
   .controls--mobile .usage-instructions {
     padding: 8px 10px;
   }
@@ -1430,14 +1452,34 @@ export default {
   font-weight: 700;
   color: rgba(0, 0, 0, 0.88);
 }
-.controls-title-github {
-  color: rgba(0, 0, 0, 0.5);
-  text-decoration: none;
-  display: inline-flex;
-  transition: color 0.2s;
+.link-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
 }
-.controls-title-github:hover {
-  color: rgba(0, 0, 0, 0.85);
+.link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: #374151;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.2s, opacity 0.2s;
+}
+.link-btn--code:hover {
+  background: #1f2937;
+}
+.link-btn--disabled {
+  cursor: default;
+  pointer-events: none;
+  opacity: 0.85;
 }
 .controls-title-sub {
   display: block;

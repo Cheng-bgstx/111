@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-从 fallAndGetUp2_subject2.json 截取「第一次站起」的片段，生成 getUp_once.json。
-用法: python3 trim_getup_once.py
+Extract the first get-up segment from fallAndGetUp2_subject2.json and write getUp_once.json.
+Usage: python3 trim_getup_once.py
 """
 import json
 import os

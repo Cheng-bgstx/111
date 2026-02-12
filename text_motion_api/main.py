@@ -58,7 +58,7 @@ class Config:
     MAX_REQUESTS_PER_MINUTE = int(os.getenv("MAX_REQUESTS_PER_MINUTE", "10"))
     MAX_REQUESTS_PER_MINUTE_PER_IP = int(os.getenv("MAX_REQUESTS_PER_MINUTE_PER_IP", "60"))
     
-    # CORS settings
+    # CORS / origin restriction (set ALLOWED_ORIGINS to your frontend origin only to prevent cross-site abuse)
     ALLOWED_ORIGINS = [origin.strip().rstrip("/") for origin in os.getenv("ALLOWED_ORIGINS", "").split(",") if origin.strip()]
     STRICT_ORIGIN_CHECK = os.getenv("STRICT_ORIGIN_CHECK", "1") == "1"
 
@@ -66,9 +66,7 @@ class Config:
     TRUST_PROXY_HEADERS = os.getenv("TRUST_PROXY_HEADERS", "0") == "1"
     REQUIRE_SESSION_FOR_API = os.getenv("REQUIRE_SESSION_FOR_API", "1") == "1"
     SERIALIZE_REMOTE_REQUESTS = os.getenv("SERIALIZE_REMOTE_REQUESTS", "1") == "1"
-    # 允许同一 session_id 在不同 IP/设备上复用（更新 fingerprint），避免“Session does not belong to this client”
     ALLOW_SESSION_REBIND = os.getenv("ALLOW_SESSION_REBIND", "1") == "1"
-    # API Key：设置后所有请求必须带 Authorization: Bearer <API_KEY>，否则 401。不设置则不做校验（兼容旧部署）。
     API_KEY = os.getenv("API_KEY", "").strip()
 
 
@@ -260,7 +258,7 @@ def require_allowed_origin(http_request: Request) -> None:
 
 
 def _is_valid_session_id(s: Optional[str]) -> bool:
-    """只接受 UUID 格式的 session_id，避免非法头注入或异常 key。"""
+    """Accept only UUID-format session_id."""
     if not s or not isinstance(s, str) or len(s) > 64:
         return False
     try:
@@ -340,7 +338,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# API Key 校验中间件：当配置了 API_KEY 时，所有非 OPTIONS 请求必须带 Authorization: Bearer <API_KEY>
+# API Key middleware: when API_KEY is set, all non-OPTIONS requests must send Authorization: Bearer <API_KEY>
 class APIKeyMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         if not Config.API_KEY:
@@ -364,7 +362,7 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(APIKeyMiddleware)
 
-# CORS: allow_credentials=True 时浏览器不允许 allow_origins=["*"]，需配置具体域名。
+# CORS: with allow_credentials=True, allow_origins cannot be "*"; set explicit origins.
 _origins = list(Config.ALLOWED_ORIGINS) if Config.ALLOWED_ORIGINS else []
 if "*" in _origins and len(_origins) == 1:
     logger.warning("ALLOWED_ORIGINS=* is incompatible with credentials; CORS will allow no origins. Set explicit origins.")
@@ -499,7 +497,7 @@ def enforce_motion_limit(session: UserSession):
 
 @app.get("/")
 async def root():
-    """Health check endpoint（不暴露内部信息）"""
+    """Health check endpoint."""
     return {"status": "running"}
 
 
@@ -597,7 +595,6 @@ async def generate_motion(
         raise
     except Exception as e:
         logger.error(f"Generation error: {e}")
-        # 不向客户端返回内部异常详情，避免信息泄露
         raise HTTPException(
             status_code=500,
             detail={"error": "Failed to generate motion", "code": "GENERATION_FAILED"}

@@ -352,8 +352,7 @@ export class MuJoCoDemo {
   }
 
   /**
-   * 站立检测（与 sim2real policy.UprightDetector 逻辑一致，用于前端 up 后按姿态切 default）。
-   * 条件：root 的 roll/pitch 小于阈值，且左右膝角（policy 顺序 9、10）伸直。
+   * Upright detection (roll/pitch below threshold, knees extended; policy joint indices 9, 10).
    */
   isUpright(options = {}) {
     const thresholdDeg = options.thresholdDeg ?? 15;

@@ -123,7 +123,7 @@ export class TrackingHelper {
     if (!this.motions[name]) {
       return false;
     }
-    // 允许随时切换：default 或 当前在 default 且已播完 或 动作执行中也可切到新动作（平滑过渡）
+    // Allow switch: default, or when on default and done, or mid-motion (smooth transition)
     this._startMotionFromCurrent(name, state);
     return true;
   }
@@ -292,9 +292,7 @@ export class TrackingHelper {
 
   /**
    * Convert motion joint_pos from policy (Isaac) order to dataset order.
-   * 关节映射位置：policy 顺序见 tracking_policy_*.json 的 policy_joint_names，
-   * dataset 顺序见同文件 tracking.dataset_joint_names；本文件 _buildPolicyToDatasetMap / _mapPolicyJointPosToDataset 实现转换。
-   * 调用处：Demo.vue addMotionToTracking（当后端返回 policy 顺序时使用）。
+   * Joint order: policy_joint_names and tracking.dataset_joint_names in tracking_policy_*.json.
    * @param {Array<Array<number>|Float32Array>} jointPosRows - One row per frame, each row in policy order
    * @returns {Array<Float32Array>} Rows in dataset order, or original rows if mapping unavailable
    */
