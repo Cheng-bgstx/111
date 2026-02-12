@@ -69,7 +69,43 @@ export GITHUB_REPO=仓库名        # 若与默认不同
 
 ---
 
-## 三、部署后核对
+## 三、前端显示 “Not Connected” 的排查
+
+**原因**：前端创建会话（请求 `/api/session`）失败，常见如下。
+
+### 1. 只改了 Secret、没有重新构建/部署（最常见）
+
+- **Vite 在构建时** 才会把 `VITE_TEXT_MOTION_API_URL` 和 `VITE_API_KEY` 写进前端代码；**只改 GitHub Secrets 不会改变已部署的页面**。
+- **正确做法**：在 GitHub 里更新 `VITE_TEXT_MOTION_API_URL`（以及如启用 API Key 则更新 `VITE_API_KEY`）后，**必须再触发一次前端构建与部署**，新配置才会生效。
+- **操作**：重新执行一次前端部署（会推送并触发 Actions 构建）：
+  ```bash
+  cd /limx_embap/tos/user/Jensen/dataset/motion_data/humanoid-policy-viewer-main
+  # 确保 deploy.env 里有 GITHUB_TOKEN（以及 GITHUB_USER、GITHUB_REPO 若需）
+  ./run_deploy_frontend.sh
+  ```
+  或在 GitHub 仓库 **Actions** 页对 “Deploy to GitHub Pages” 工作流点击 **Run workflow**，跑完后刷新前端页面再试。
+
+### 2. API Key 不一致
+
+- 若后端在 `deploy.env` 或环境里设置了 `API_KEY`，则 GitHub Secret **VITE_API_KEY** 必须与之一字不差（同一密钥）。
+- 若后端未设 API Key，则不要在前端构建里传 `VITE_API_KEY`（或删掉该 Secret），否则可能误带空/错误头。
+
+### 3. 后端新 URL 未生效或不可达
+
+- 在浏览器新开标签访问：`https://你的新隧道地址.trycloudflare.com/`  
+  应返回 `{"status":"running"}`。若打不开或非此响应，说明隧道/后端未就绪，需先看后端日志（如 `/root/gateway.log`、`/root/tunnel.log`）。
+- 新 URL 不要带末尾斜杠，例如用 `https://xxx.trycloudflare.com`，不要 `https://xxx.trycloudflare.com/`（根路径可以带 `/`，但 Secret 里填的 **VITE_TEXT_MOTION_API_URL** 建议不带末尾斜杠）。
+
+### 4. 看浏览器具体报错
+
+- 打开前端页面 → F12 → **Network**，刷新或点击 “Generate motions with AI”，找到对 `session` 或 `api/session` 的请求：
+  - **CORS 报错**：检查后端 `FRONTEND_ORIGIN` / `ALLOWED_ORIGINS` 是否包含你前端访问的 Origin（如 `https://cheng-bgstx.github.io`）。
+  - **401**：API Key 校验失败，检查前后端密钥是否一致、是否重新部署了前端。
+  - **404 /  Failed to fetch**：请求的 base URL 仍是旧的或写错，说明前端未用新 URL 构建，按第 1 步重新部署。
+
+---
+
+## 四、部署后核对
 
 - [ ] 浏览器打开前端页面，能正常加载。
 - [ ] 若启用了 API Key：未配置或配错会 401；前后端密钥一致且 CORS 为前端域名时应正常。
@@ -78,7 +114,7 @@ export GITHUB_REPO=仓库名        # 若与默认不同
 
 ---
 
-## 四、小结
+## 五、小结
 
 | 项目           | 后端                         | 前端（GitHub）                          |
 |----------------|------------------------------|-----------------------------------------|

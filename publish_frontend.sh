@@ -55,6 +55,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 permissions:
   contents: read
   pages: write
@@ -86,14 +87,15 @@ jobs:
         uses: actions/deploy-pages@v4
 WORKFLOWEOF
 
-# 4. 提交代码（不再删除历史，避免误操作）
+# 4. 提交代码（无变更时做空提交以便触发 Actions 重新构建，使新 Secret 生效）
 echo ">>> [4/6] 提交代码..."
 if [ ! -d ".git" ]; then
     git init
 fi
 git add -A
 if git diff --cached --quiet; then
-    echo "ℹ️ 无代码变更，跳过 commit。"
+    echo "ℹ️ 无代码变更，执行空提交以触发 Actions 重新构建（使新 VITE_* 生效）。"
+    git commit --allow-empty -m "chore: trigger rebuild for env/Secret update"
 else
     git commit -m "Secure deploy at $CURRENT_TIME"
 fi
