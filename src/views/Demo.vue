@@ -1559,17 +1559,6 @@ export default {
 .motion-chip {
   text-transform: none;
   font-size: 0.7rem;
-  white-space: normal;
-  max-width: 100%;
-  text-align: left;
-  min-height: auto;
-  padding: 4px 8px;
-}
-
-.motion-chip :deep(.v-chip__content) {
-  white-space: normal;
-  max-width: 100%;
-  font-size: 0.7rem;
 }
 
 .status-legend {
@@ -1677,9 +1666,9 @@ export default {
 .generated-motions-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 5px;
   margin-top: 2px;
-  max-height: 110px;
+  max-height: 100px;
   overflow-y: auto;
 }
 
