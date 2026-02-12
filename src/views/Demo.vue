@@ -1372,43 +1372,43 @@ export default {
 }
 
 .controls-card {
-  max-height: calc(100vh - 40px);
-  border-radius: 14px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+  max-height: calc(100vh - 32px);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
 .controls-title {
-  font-size: 1.08rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  letter-spacing: 0.03em;
-  padding: 16px 18px 10px;
+  letter-spacing: 0.02em;
+  padding: 10px 14px 6px;
   text-align: center;
-  background: linear-gradient(180deg, rgba(25, 118, 210, 0.06) 0%, transparent 100%);
+  background: linear-gradient(180deg, rgba(25, 118, 210, 0.05) 0%, transparent 100%);
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .controls-body {
-  max-height: calc(100vh - 180px);
+  max-height: calc(100vh - 120px);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 12px 16px 16px;
+  padding: 8px 12px 12px;
 }
 
 .section-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.08), transparent);
-  margin: 12px 0;
+  background: rgba(0, 0, 0, 0.07);
+  margin: 8px 0;
 }
 
 .section-label {
   display: block;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   color: rgba(0, 0, 0, 0.5);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .status-chip {
@@ -1416,65 +1416,65 @@ export default {
 }
 
 .usage-instructions {
-  background: rgba(25, 118, 210, 0.06);
-  border-radius: 10px;
-  padding: 12px 14px;
-  border: 1px solid rgba(25, 118, 210, 0.12);
+  background: rgba(25, 118, 210, 0.05);
+  border-radius: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(25, 118, 210, 0.1);
 }
 
 .usage-heading {
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  color: rgba(0, 0, 0, 0.85);
-  margin: 0 0 8px;
+  color: rgba(0, 0, 0, 0.82);
+  margin: 0 0 4px;
   letter-spacing: 0.02em;
 }
 
 .usage-bullets {
-  margin: 0 0 10px;
-  padding-left: 1.1rem;
-  font-size: 0.78rem;
-  line-height: 1.5;
-  color: rgba(0, 0, 0, 0.72);
+  margin: 0 0 6px;
+  padding-left: 1rem;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: rgba(0, 0, 0, 0.7);
 }
 
 .usage-bullets li {
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .usage-bullets kbd {
   font-family: ui-monospace, monospace;
-  font-size: 0.72rem;
-  padding: 2px 5px;
-  border-radius: 4px;
+  font-size: 0.65rem;
+  padding: 1px 4px;
+  border-radius: 3px;
   background: rgba(0, 0, 0, 0.07);
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .usage-shortcuts-label {
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   font-weight: 600;
-  color: rgba(0, 0, 0, 0.65);
-  margin: 0 0 4px;
+  color: rgba(0, 0, 0, 0.62);
+  margin: 0 0 2px;
 }
 
 .usage-shortcuts {
   margin: 0;
-  padding-left: 1.1rem;
-  font-size: 0.76rem;
-  line-height: 1.55;
-  color: rgba(0, 0, 0, 0.68);
+  padding-left: 1rem;
+  font-size: 0.68rem;
+  line-height: 1.45;
+  color: rgba(0, 0, 0, 0.66);
 }
 
 .usage-shortcuts li {
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 
 .usage-shortcuts kbd {
   font-family: ui-monospace, monospace;
-  font-size: 0.7rem;
-  padding: 2px 5px;
-  border-radius: 4px;
+  font-size: 0.64rem;
+  padding: 1px 4px;
+  border-radius: 3px;
   background: rgba(0, 0, 0, 0.07);
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
@@ -1482,37 +1482,39 @@ export default {
 .command-section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .command-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 5px;
 }
 
 .example-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .example-chip {
   text-transform: none;
   white-space: normal;
-  font-size: 0.8rem;
-  line-height: 1.35;
+  font-size: 0.75rem;
+  line-height: 1.3;
   max-width: 100%;
-  min-height: 32px;
+  min-height: 28px;
   justify-content: flex-start;
   text-align: left;
+  flex: 0 0 auto;
 }
 
+/* Long sentence: same font size, but box spans full width so text has room and is readable */
 .example-chip--long {
   flex: 1 1 100%;
   min-width: 0;
-  font-size: 0.82rem;
-  padding: 8px 12px;
+  min-height: 36px;
+  padding: 6px 10px;
 }
 
 .motion-status {
@@ -1590,7 +1592,7 @@ export default {
 .text-to-motion-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .generate-header {
@@ -1598,7 +1600,7 @@ export default {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .generate-header .section-label {
@@ -1608,18 +1610,18 @@ export default {
 .generate-content {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 .generate-textarea {
-  margin-top: 2px;
+  margin-top: 0;
 }
 
 .example-label {
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   font-weight: 600;
-  color: rgba(0, 0, 0, 0.6);
-  margin: 0 0 6px;
+  color: rgba(0, 0, 0, 0.55);
+  margin: 0 0 4px;
 }
 
 .advanced-options {
@@ -1631,25 +1633,25 @@ export default {
 .generated-section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .generated-legend {
-  margin-bottom: 2px;
+  margin-bottom: 0;
 }
 
 .generated-hint {
-  font-size: 0.72rem;
-  color: rgba(0, 0, 0, 0.55);
-  margin: 0 0 6px;
+  font-size: 0.65rem;
+  color: rgba(0, 0, 0, 0.5);
+  margin: 0 0 4px;
 }
 
 .generated-motions-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 4px;
-  max-height: 120px;
+  gap: 5px;
+  margin-top: 2px;
+  max-height: 100px;
   overflow-y: auto;
 }
 
