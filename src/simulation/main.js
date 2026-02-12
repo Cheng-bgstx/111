@@ -351,6 +351,31 @@ export class MuJoCoDemo {
     };
   }
 
+  /**
+   * 站立检测（与 sim2real policy.UprightDetector 逻辑一致，用于前端 up 后按姿态切 default）。
+   * 条件：root 的 roll/pitch 小于阈值，且左右膝角（policy 顺序 9、10）伸直。
+   */
+  isUpright(options = {}) {
+    const thresholdDeg = options.thresholdDeg ?? 15;
+    const kneeThresholdRad = options.kneeThresholdRad ?? 0.5;
+    const state = this.readPolicyState();
+    if (!state?.rootQuat?.length || !state?.jointPos?.length) {
+      return false;
+    }
+    const w = state.rootQuat[0];
+    const x = state.rootQuat[1];
+    const y = state.rootQuat[2];
+    const z = state.rootQuat[3];
+    const roll = Math.atan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y));
+    const pitch = Math.asin(Math.max(-1, Math.min(1, 2 * (w * y - z * x))));
+    const thresholdRad = (thresholdDeg * Math.PI) / 180;
+    const imuOk = Math.abs(roll) < thresholdRad && Math.abs(pitch) < thresholdRad;
+    const leftKnee = state.jointPos[9] ?? 0;
+    const rightKnee = state.jointPos[10] ?? 0;
+    const kneesOk = Math.abs(leftKnee) < kneeThresholdRad && Math.abs(rightKnee) < kneeThresholdRad;
+    return imuOk && kneesOk;
+  }
+
   resetSimulation() {
     if (!this.simulation) {
       return;

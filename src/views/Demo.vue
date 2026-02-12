@@ -390,6 +390,9 @@ export default {
     lastGeneratedMotion: null,
     statusMessage: '',
     autoDefaultTriggered: false,
+    isUprightMonitoring: false,
+    uprightCheckCount: 0,
+    UPRIGHT_CONSECUTIVE_FRAMES: 8,
     examplePrompts: [
       'a person is jogging on the spot',
       'person is boxing, they throw an upper cut then defend and dodge then they throw a few right jabs',
@@ -1076,7 +1079,9 @@ export default {
       const accepted = this.requestMotion(name);
       if (accepted) {
         this.currentMotion = name;
-        this.statusMessage = '站起动作已加载，完成后将自动恢复 default。';
+        this.isUprightMonitoring = true;
+        this.uprightCheckCount = 0;
+        this.statusMessage = '站起动作已加载，检测到站直后自动恢复 default。';
         setTimeout(() => { this.statusMessage = ''; }, 3000);
         this.updateTrackingState();
       }
@@ -1118,6 +1123,33 @@ export default {
       const current = this.demo.params.current_motion ?? state.currentName ?? null;
       if (current && this.currentMotion !== current) {
         this.currentMotion = current;
+      }
+
+      const isUpMotion = state.currentName === 'fallAndGetUp2_subject2' || state.currentName === 'fallAndGetUp1_subject1';
+
+      // 站起监测：up 后按仿真姿态判「站直」再切 default（与 sim2real UprightDetector 一致）
+      if (this.isUprightMonitoring && state.available && isUpMotion && this.demo.isUpright) {
+        if (this.demo.isUpright({ thresholdDeg: 15, kneeThresholdRad: 0.6 })) {
+          this.uprightCheckCount += 1;
+          if (this.uprightCheckCount >= this.UPRIGHT_CONSECUTIVE_FRAMES) {
+            this.isUprightMonitoring = false;
+            this.uprightCheckCount = 0;
+            this.autoDefaultTriggered = true;
+            const accepted = this.requestMotion('default');
+            if (accepted) {
+              this.currentMotion = 'default';
+              this.statusMessage = '检测到已站直，自动切换到 default 姿态。';
+              setTimeout(() => { this.statusMessage = ''; }, 3000);
+            }
+          }
+        } else {
+          this.uprightCheckCount = 0;
+        }
+      }
+
+      if (this.isUprightMonitoring && (!isUpMotion || state.currentDone)) {
+        this.isUprightMonitoring = false;
+        this.uprightCheckCount = 0;
       }
 
       // 自动回 default：非 default 动作播完后，自动切回 default 姿态（仅触发一次）
