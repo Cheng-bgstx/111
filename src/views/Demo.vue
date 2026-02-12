@@ -28,10 +28,10 @@
     <v-card class="controls-card">
       <v-card-title class="controls-title">
         <div class="controls-title-row">
-          <span class="controls-title-main">SHELL:</span>
+          <span class="controls-title-main">ECHO:</span>
         </div>
-        <span class="controls-title-sub">Semantic Hierarchical Embodied Language-to-Motion</span>
-        <span class="controls-title-sub">with Low-level Tracking</span>
+        <span class="controls-title-sub">Edge-Cloud Humanoid Orchestration</span>
+        <span class="controls-title-sub">for Language-to-Motion Control</span>
         <div class="link-buttons">
           <span class="link-btn link-btn--disabled" aria-disabled="true">
             <v-icon icon="mdi-file-document-outline" size="18" />
@@ -319,7 +319,10 @@
     <v-card title="Loading Simulation Environment">
       <v-card-text>
         <v-progress-linear indeterminate color="primary"></v-progress-linear>
-        Loading MuJoCo and ONNX policy, please wait
+        <p class="mb-2">Loading MuJoCo and ONNX policy, please wait.</p>
+        <p v-if="isSmallScreen" class="text-caption text-medium-emphasis">
+          On mobile this may take 1–2 minutes or run out of memory; desktop is recommended. If it does not load, try refreshing or use a desktop browser.
+        </p>
       </v-card-text>
     </v-card>
   </v-dialog>
@@ -576,11 +579,21 @@ export default {
         return;
       }
 
+      const loadTimeoutMs = this.isSmallScreen ? 70000 : 90000;
+      const timeoutId = window.setTimeout(() => {
+        if (this.state === 0) {
+          this.state = -1;
+          this.extra_error_message = 'Loading timed out. On mobile, MuJoCo and ONNX often need more memory than available. Please try on a desktop browser or refresh the page.';
+        }
+      }, loadTimeoutMs);
+
       try {
         const mujoco = await loadMujoco();
         this.demo = new MuJoCoDemo(mujoco);
         this.demo.setFollowEnabled?.(this.cameraFollowEnabled);
         await this.demo.init();
+        window.clearTimeout(timeoutId);
+        if (this.state !== 0) return;
         this.demo.main_loop();
         this.demo.params.paused = false;
         this.reapplyCustomMotions();
@@ -596,11 +609,11 @@ export default {
         }
         this.policyLabel = this.demo.currentPolicyPath?.split('/').pop() ?? this.policyLabel;
 
-        // Initialize text-to-motion session
         await this.initTextMotionSession();
 
         this.state = 1;
       } catch (error) {
+        window.clearTimeout(timeoutId);
         this.state = -1;
         this.extra_error_message = error.toString();
         console.error(error);
@@ -1322,21 +1335,24 @@ export default {
   z-index: 1000;
 }
 
-/* Mobile: compact bottom bar so the robot stays visible above (~55% viewport for scene) */
+/* Mobile: larger bottom panel; robot area above with less top whitespace */
 @media (max-width: 499px), (max-height: 699px) {
+  #mujoco-container {
+    margin-top: -8px;
+  }
   .controls {
     top: auto;
     right: 0;
     bottom: 0;
     left: 0;
     width: 100%;
-    max-height: 28vh;
+    max-height: 40vh;
     padding-bottom: env(safe-area-inset-bottom, 0);
     display: flex;
     flex-direction: column;
   }
   .controls-card {
-    max-height: 28vh;
+    max-height: 40vh;
     border-radius: 16px 16px 0 0;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
     display: flex;

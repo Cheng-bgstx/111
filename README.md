@@ -1,4 +1,4 @@
-# SHELL: Semantic Hierarchical Embodied Language-to-Motion with Low-level Tracking
+# ECHO: Edge-Cloud Humanoid Orchestration for Language-to-Motion Control
 
 Browser-based demo for language-conditioned humanoid whole-body control. The app runs a MuJoCo WebAssembly scene driven by an ONNX tracking policy and connects to a text-to-motion backend for language-driven motion generation.
 

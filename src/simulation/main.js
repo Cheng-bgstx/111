@@ -45,7 +45,8 @@ export class MuJoCoDemo {
     this.scene.add(this.ambientLight);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderScale = 2.0;
+    const isSmallScreen = window.innerWidth < 500 || window.innerHeight < 700;
+    this.renderScale = isSmallScreen ? 1 : 2.0;
     this.renderer.setPixelRatio(this.renderScale);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
@@ -59,7 +60,11 @@ export class MuJoCoDemo {
     this.container.appendChild(this.renderer.domElement);
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.target.set(0, 0.7, 0);
+    const targetY = isSmallScreen ? 0.88 : 0.7;
+    this.controls.target.set(0, targetY, 0);
+    if (isSmallScreen) {
+      this.camera.position.set(3.0, 1.95, 3.0);
+    }
     this.controls.panSpeed = 2;
     this.controls.zoomSpeed = 1;
     this.controls.enableDamping = true;
