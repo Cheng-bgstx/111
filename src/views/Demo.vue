@@ -1507,22 +1507,31 @@ export default {
   text-align: left;
 }
 
-/* Same font size as generated list (.motion-chip) below "Tap to replay" */
 .example-chip--short {
   flex: 0 0 auto;
-  font-size: 0.3rem;
   line-height: 1.2;
-  min-height: 18px;
-  padding: 2px 5px;
+  min-height: 14px;
+  padding: 2px 4px;
+}
+
+.example-chip--short :deep(.v-chip__content),
+.example-chip--short :deep(span) {
+  font-size: 0.5rem !important;
+  line-height: 1.2;
 }
 
 .example-chip--long {
   flex: 1 1 100%;
   min-width: 0;
-  font-size: 0.3rem;
-  line-height: 1.4;
-  min-height: 42px;
-  padding: 6px 8px;
+  line-height: 1.35;
+  min-height: 36px;
+  padding: 5px 6px;
+}
+
+.example-chip--long :deep(.v-chip__content),
+.example-chip--long :deep(span) {
+  font-size: 0.5rem !important;
+  line-height: 1.35;
 }
 
 .motion-status {
@@ -1549,7 +1558,17 @@ export default {
 
 .motion-chip {
   text-transform: none;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
+  white-space: normal;
+  max-width: 100%;
+  text-align: left;
+  min-height: auto;
+}
+
+.motion-chip :deep(.v-chip__content) {
+  white-space: normal;
+  max-width: 100%;
+  font-size: 0.65rem;
 }
 
 .status-legend {
@@ -1659,7 +1678,7 @@ export default {
   flex-wrap: wrap;
   gap: 4px;
   margin-top: 2px;
-  max-height: 72px;
+  max-height: 110px;
   overflow-y: auto;
 }
 
