@@ -26,7 +26,10 @@
   </div>
   <div class="controls" :class="{ 'controls--mobile': isSmallScreen }">
     <v-card class="controls-card">
-      <v-card-title class="controls-title">Text to Motion</v-card-title>
+      <v-card-title class="controls-title">
+        <span class="controls-title-main">SHELL:</span>
+        <span class="controls-title-sub">Semantic Hierarchical Embodied Language-to-Motion with Low-level Tracking</span>
+      </v-card-title>
       <v-card-text class="py-0 controls-body">
         <section class="usage-instructions">
           <h3 class="usage-heading">Usage</h3>
@@ -395,7 +398,7 @@ export default {
       'walk in a circle',
       'jump jacks',
       'a person is jogging on the spot',
-      'a person side steps to the right and then to the left, and back to the middle',
+      'a man full-body sideways jumps to his right',
       'person is boxing, they throw an upper cut then defend and dodge then they throw a few right jabs'
     ]
   }),
@@ -1324,6 +1327,10 @@ export default {
   }
   .controls--mobile .controls-title {
     padding: 10px 12px 6px;
+    gap: 2px;
+  }
+  .controls--mobile .controls-title-sub {
+    font-size: 0.65rem;
   }
   .controls--mobile .usage-instructions {
     padding: 8px 10px;
@@ -1385,13 +1392,28 @@ export default {
 }
 
 .controls-title {
-  font-size: 0.95rem;
-  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Georgia', 'Times New Roman', serif;
   letter-spacing: 0.02em;
-  padding: 10px 14px 6px;
+  padding: 10px 12px 8px;
   text-align: center;
   background: linear-gradient(180deg, rgba(25, 118, 210, 0.05) 0%, transparent 100%);
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  line-height: 1.3;
+}
+.controls-title-main {
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.88);
+}
+.controls-title-sub {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.65);
+  max-width: 100%;
 }
 
 .controls-body {
