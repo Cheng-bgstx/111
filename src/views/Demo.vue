@@ -1516,7 +1516,7 @@ export default {
 
 .example-chip--short :deep(.v-chip__content),
 .example-chip--short :deep(span) {
-  font-size: 0.5rem !important;
+  font-size: 0.7rem !important;
   line-height: 1.2;
 }
 
@@ -1530,7 +1530,7 @@ export default {
 
 .example-chip--long :deep(.v-chip__content),
 .example-chip--long :deep(span) {
-  font-size: 0.5rem !important;
+  font-size: 0.7rem !important;
   line-height: 1.35;
 }
 
@@ -1558,17 +1558,18 @@ export default {
 
 .motion-chip {
   text-transform: none;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   white-space: normal;
   max-width: 100%;
   text-align: left;
   min-height: auto;
+  padding: 4px 8px;
 }
 
 .motion-chip :deep(.v-chip__content) {
   white-space: normal;
   max-width: 100%;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
 }
 
 .status-legend {
