@@ -125,10 +125,9 @@
                 <v-chip
                   v-for="ex in examplePromptsSorted"
                   :key="ex"
-                  size="small"
                   variant="tonal"
                   class="example-chip"
-                  :class="{ 'example-chip--long': ex.length > 40 }"
+                  :class="ex.length > 35 ? 'example-chip--long' : 'example-chip--short'"
                   :disabled="state !== 1 || textMotionStatus === 'generating'"
                   @click="runExample(ex)"
                 >
@@ -1345,8 +1344,11 @@ export default {
   .controls--mobile .v-btn.flex-grow-1 {
     min-height: 44px;
   }
-  .controls--mobile .example-chip {
+  .controls--mobile .example-chip--short {
     min-height: 40px;
+  }
+  .controls--mobile .example-chip--long {
+    min-height: 56px;
   }
 }
 
@@ -1500,21 +1502,28 @@ export default {
 .example-chip {
   text-transform: none;
   white-space: normal;
-  font-size: 0.75rem;
-  line-height: 1.3;
   max-width: 100%;
-  min-height: 28px;
   justify-content: flex-start;
   text-align: left;
-  flex: 0 0 auto;
 }
 
-/* Long sentence: same font size, but box spans full width so text has room and is readable */
+/* Short phrase (e.g. "jump jacks"): small compact tag */
+.example-chip--short {
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  line-height: 1.25;
+  min-height: 22px;
+  padding: 4px 8px;
+}
+
+/* Long sentence: larger box (width + height) so text isn't cramped */
 .example-chip--long {
   flex: 1 1 100%;
   min-width: 0;
-  min-height: 36px;
-  padding: 6px 10px;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  min-height: 52px;
+  padding: 10px 12px;
 }
 
 .motion-status {
