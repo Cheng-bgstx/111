@@ -29,7 +29,21 @@
       <v-card-title class="controls-title">Text to Motion</v-card-title>
       <v-card-text class="py-0 controls-body">
         <section class="usage-instructions">
-          <p class="usage-desc">Enter a text description to generate a motion, or use the shortcut buttons below. You can also type: <kbd>default</kbd>, <kbd>up</kbd>, <kbd>last</kbd>, <kbd>list</kbd>, <kbd>status</kbd>, <kbd>clear</kbd>. Motion returns to default when finished or when standing after <kbd>up</kbd>.</p>
+          <h3 class="usage-heading">Usage</h3>
+          <ul class="usage-bullets">
+            <li>Type a text description and press Enter (or tap Generate) to create a motion.</li>
+            <li>You can switch to a new motion anytime; playback switches to default when a motion ends or after standing from <kbd>up</kbd>.</li>
+            <li>Shortcuts below can also be typed in the text field.</li>
+          </ul>
+          <p class="usage-shortcuts-label">Shortcut buttons:</p>
+          <ul class="usage-shortcuts">
+            <li><kbd>default</kbd> — rest pose</li>
+            <li><kbd>up</kbd> — get up (after fall), then auto default when standing</li>
+            <li><kbd>last</kbd> — replay last generated motion</li>
+            <li><kbd>list</kbd> — show generated motion list</li>
+            <li><kbd>status</kbd> — current motion state</li>
+            <li><kbd>clear</kbd> — clear generated motions for this session</li>
+          </ul>
         </section>
         <div class="section-divider"></div>
 
@@ -47,48 +61,54 @@
         <div class="section-divider"></div>
 
         <section class="text-to-motion-section">
-          <span class="section-label">Generate</span>
-          <div class="status-legend">
-            <v-chip
-              v-if="textMotionStatus === 'connected'"
-              size="x-small"
-              color="success"
-              variant="flat"
-            >
-              <v-icon icon="mdi-check-circle" size="x-small" class="mr-1"></v-icon>
-              Ready
-            </v-chip>
-            <v-chip
-              v-else-if="textMotionStatus === 'generating'"
-              size="x-small"
-              color="warning"
-              variant="flat"
-            >
-              <v-icon icon="mdi-loading" size="x-small" class="mr-1 spinning"></v-icon>
-              Generating...
-            </v-chip>
-            <v-chip
-              v-else-if="textMotionStatus === 'error'"
-              size="x-small"
-              color="error"
-              variant="flat"
-            >
-              <v-icon icon="mdi-alert" size="x-small" class="mr-1"></v-icon>
-              Error
-            </v-chip>
-            <v-chip
-              v-else
-              size="x-small"
-              color="grey"
-              variant="flat"
-            >
-              <v-icon icon="mdi-minus-circle" size="x-small" class="mr-1"></v-icon>
-              Not Connected
-            </v-chip>
+          <div class="generate-header">
+            <span class="section-label">Generate</span>
+            <div class="status-legend">
+              <v-chip
+                v-if="textMotionStatus === 'connected'"
+                size="x-small"
+                color="success"
+                variant="flat"
+                class="status-chip"
+              >
+                <v-icon icon="mdi-check-circle" size="x-small" class="mr-1"></v-icon>
+                Ready
+              </v-chip>
+              <v-chip
+                v-else-if="textMotionStatus === 'generating'"
+                size="x-small"
+                color="warning"
+                variant="flat"
+                class="status-chip"
+              >
+                <v-icon icon="mdi-loading" size="x-small" class="mr-1 spinning"></v-icon>
+                Generating...
+              </v-chip>
+              <v-chip
+                v-else-if="textMotionStatus === 'error'"
+                size="x-small"
+                color="error"
+                variant="flat"
+                class="status-chip"
+              >
+                <v-icon icon="mdi-alert" size="x-small" class="mr-1"></v-icon>
+                Error
+              </v-chip>
+              <v-chip
+                v-else
+                size="x-small"
+                color="grey"
+                variant="flat"
+                class="status-chip"
+              >
+                <v-icon icon="mdi-minus-circle" size="x-small" class="mr-1"></v-icon>
+                Not Connected
+              </v-chip>
+            </div>
           </div>
 
           <v-expand-transition>
-            <div v-if="showTextMotionPanel">
+            <div v-if="showTextMotionPanel" class="generate-content">
               <v-textarea
                 v-model="textPrompt"
                 label="Text description"
@@ -96,25 +116,24 @@
                 density="compact"
                 hide-details
                 rows="2"
-                class="mt-2"
+                class="generate-textarea"
                 :disabled="state !== 1 || textMotionStatus === 'generating'"
                 @keydown.enter.prevent="handleEnterKey"
               ></v-textarea>
-              <div class="example-prompts mt-2">
-                <span class="text-caption mr-1">Examples (tap to generate):</span>
-                <div class="example-chips">
-                  <v-chip
-                    v-for="ex in examplePrompts"
-                    :key="ex"
-                    size="x-small"
-                    variant="tonal"
-                    class="example-chip"
-                    :disabled="state !== 1 || textMotionStatus === 'generating'"
-                    @click="runExample(ex)"
-                  >
-                    {{ ex }}
-                  </v-chip>
-                </div>
+              <p class="example-label">Examples (tap to generate):</p>
+              <div class="example-chips">
+                <v-chip
+                  v-for="ex in examplePromptsSorted"
+                  :key="ex"
+                  size="small"
+                  variant="tonal"
+                  class="example-chip"
+                  :class="{ 'example-chip--long': ex.length > 40 }"
+                  :disabled="state !== 1 || textMotionStatus === 'generating'"
+                  @click="runExample(ex)"
+                >
+                  {{ ex }}
+                </v-chip>
               </div>
 
               <v-expand-transition>
@@ -373,14 +392,17 @@ export default {
     uprightCheckCount: 0,
     UPRIGHT_CONSECUTIVE_FRAMES: 8,
     examplePrompts: [
-      'a person is jogging on the spot',
-      'person is boxing, they throw an upper cut then defend and dodge then they throw a few right jabs',
-      'a person side steps to the right and then to the left, and back to the middle',
       'walk in a circle',
-      'jump jacks'
+      'jump jacks',
+      'a person is jogging on the spot',
+      'a person side steps to the right and then to the left, and back to the middle',
+      'person is boxing, they throw an upper cut then defend and dodge then they throw a few right jabs'
     ]
   }),
   computed: {
+    examplePromptsSorted() {
+      return [...this.examplePrompts].sort((a, b) => a.length - b.length);
+    },
     shouldShowProgress() {
       const state = this.trackingState;
       if (!state || !state.available) {
@@ -1303,9 +1325,13 @@ export default {
   .controls--mobile .usage-instructions {
     padding: 8px 10px;
   }
-  .controls--mobile .usage-desc {
-    font-size: 0.75rem;
-    line-height: 1.35;
+  .controls--mobile .usage-heading,
+  .controls--mobile .usage-bullets,
+  .controls--mobile .usage-shortcuts {
+    font-size: 0.74rem;
+  }
+  .controls--mobile .usage-shortcuts-label {
+    font-size: 0.72rem;
   }
   .controls--mobile .text-to-motion-section :deep(textarea),
   .controls--mobile .text-to-motion-section :deep(.v-field__input) {
@@ -1347,29 +1373,32 @@ export default {
 
 .controls-card {
   max-height: calc(100vh - 40px);
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 .controls-title {
-  font-size: 1.05rem;
+  font-size: 1.08rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
-  padding: 14px 16px 8px;
+  letter-spacing: 0.03em;
+  padding: 16px 18px 10px;
   text-align: center;
+  background: linear-gradient(180deg, rgba(25, 118, 210, 0.06) 0%, transparent 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .controls-body {
-  max-height: calc(100vh - 160px);
+  max-height: calc(100vh - 180px);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 6px 14px 14px;
+  padding: 12px 16px 16px;
 }
 
 .section-divider {
   height: 1px;
-  background: rgba(0, 0, 0, 0.06);
-  margin: 10px 0;
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.08), transparent);
+  margin: 12px 0;
 }
 
 .section-label {
@@ -1377,28 +1406,73 @@ export default {
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: rgba(0, 0, 0, 0.5);
   margin-bottom: 6px;
 }
 
+.status-chip {
+  flex-shrink: 0;
+}
+
 .usage-instructions {
-  background: rgba(25, 118, 210, 0.05);
-  border-radius: 8px;
-  padding: 10px 12px;
-  border: 1px solid rgba(25, 118, 210, 0.1);
+  background: rgba(25, 118, 210, 0.06);
+  border-radius: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(25, 118, 210, 0.12);
 }
 
-.usage-desc {
+.usage-heading {
   font-size: 0.8rem;
-  line-height: 1.45;
-  color: rgba(0, 0, 0, 0.7);
-  margin: 0;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.85);
+  margin: 0 0 8px;
+  letter-spacing: 0.02em;
 }
 
-.usage-desc kbd {
+.usage-bullets {
+  margin: 0 0 10px;
+  padding-left: 1.1rem;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.72);
+}
+
+.usage-bullets li {
+  margin-bottom: 4px;
+}
+
+.usage-bullets kbd {
   font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.07);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.usage-shortcuts-label {
   font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.65);
+  margin: 0 0 4px;
+}
+
+.usage-shortcuts {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.76rem;
+  line-height: 1.55;
+  color: rgba(0, 0, 0, 0.68);
+}
+
+.usage-shortcuts li {
+  margin-bottom: 2px;
+}
+
+.usage-shortcuts kbd {
+  font-family: ui-monospace, monospace;
+  font-size: 0.7rem;
   padding: 2px 5px;
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.07);
@@ -1417,24 +1491,28 @@ export default {
   gap: 6px;
 }
 
-.example-prompts .text-caption {
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.6);
-  margin-bottom: 6px;
-}
-
 .example-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 6px;
 }
 
 .example-chip {
   text-transform: none;
   white-space: normal;
+  font-size: 0.8rem;
+  line-height: 1.35;
   max-width: 100%;
-  font-size: 0.78rem;
+  min-height: 32px;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.example-chip--long {
+  flex: 1 1 100%;
+  min-width: 0;
+  font-size: 0.82rem;
+  padding: 8px 12px;
 }
 
 .motion-status {
@@ -1512,7 +1590,36 @@ export default {
 .text-to-motion-section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+}
+
+.generate-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.generate-header .section-label {
+  margin-bottom: 0;
+}
+
+.generate-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.generate-textarea {
+  margin-top: 2px;
+}
+
+.example-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.6);
+  margin: 0 0 6px;
 }
 
 .advanced-options {
