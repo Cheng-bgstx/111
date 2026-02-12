@@ -5,8 +5,8 @@ __pycache__/
 .env
 .env.*
 !.env.example
+deploy.env
 .DS_Store
 text_motion_api/venv/
-*.sh
 *.log
 .git/

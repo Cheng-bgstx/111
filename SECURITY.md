@@ -24,6 +24,14 @@
   - `.env.example` 中改为示例具体域名，并说明生产环境应配置为显式 origin 列表。
   - 本地开发可设置 `STRICT_ORIGIN_CHECK=0` 关闭 origin 检查（仅建议在可信环境使用）。
 
+### 4. 信息暴露（已收紧）
+
+- **GET /**：仅返回 `{"status": "running"}`，不再返回 `remote_server`、`active_sessions` 等。
+- **GET /health**：仅返回 `{"status": "healthy"}`。
+- **WebSocket 错误**：对客户端仅返回固定文案 `"Backend connection error"`，详细异常仅记入服务端日志。
+- **日志**：发送到远程生成服务时不再记录用户输入文本，仅记录“已发送请求”等。
+- **GET /api/config**：已做 Origin 校验，与其它 API 一致。
+
 ---
 
 ## 二、安全相关配置（需按环境调整）
@@ -49,20 +57,26 @@
 - **ALLOWED_ORIGINS**：逗号分隔的合法前端来源，例如  
   `http://localhost:5173,https://yourdomain.com`。**不要**在生产环境使用 `*`（且与 credentials 不兼容）。
 
-### 4. 前端 API 地址
+### 4. API Key 认证（可选）
+
+- 设置环境变量 **API_KEY** 后，所有非 OPTIONS 请求必须带请求头 `Authorization: Bearer <API_KEY>`，否则返回 401。
+- 前端需配置 **VITE_API_KEY**（与后端 API_KEY 一致），请求会自动带上该头。
+- 不设置 API_KEY 时不做校验，便于本地开发；生产建议设置。
+
+### 5. 前端 API 地址
 
 - 前端默认请求 `VITE_TEXT_MOTION_API_URL` 或 `http://localhost:8080`。
-- 生产部署时请通过构建环境变量指定为实际 API 地址，避免暴露或误用本地地址。
+- 生产部署时请通过构建环境变量指定为实际 API 地址，并设置 **ALLOWED_ORIGINS** 为实际前端域名（如 Vercel 地址）。
 
 ---
 
 ## 三、当前限制与已知风险
 
-### 1. 无用户认证
+### 1. 用户认证
 
-- 接口**无登录/鉴权**，仅依赖会话 ID + 客户端指纹绑定会话。
-- 会话 ID 为 UUID，不可预测，但一旦泄露（如被截获、共享），他人可在满足 CORS 的前提下以该会话访问对应数据。
-- **建议**：对敏感或生产环境，在前置网关或本服务前增加认证（如 OAuth、JWT、API Key）。
+- 已支持 **API Key**（见上）；设置后仅持有密钥的前端可调用 API。
+- 会话仍依赖 Session ID + 客户端指纹；会话 ID 一旦泄露，他人可在满足 CORS 且持有 API Key 的前提下访问该会话数据。
+- **建议**：生产环境同时设置 API_KEY + ALLOWED_ORIGINS 为实际前端域名。
 
 ### 2. 会话劫持（ALLOW_SESSION_REBIND=1 时）
 

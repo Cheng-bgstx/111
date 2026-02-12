@@ -314,6 +314,7 @@ import loadMujoco from 'mujoco-js';
 
 // Text-to-Motion API configuration
 const TEXT_MOTION_API_URL = import.meta.env.VITE_TEXT_MOTION_API_URL || 'http://localhost:8080';
+const API_KEY = (import.meta.env.VITE_API_KEY || '').trim();
 const SESSION_STORAGE_KEY = 'text_motion_session_id';
 const MAX_GENERATED_MOTIONS = 10;
 
@@ -580,6 +581,9 @@ export default {
 
     buildSessionHeaders(includeContentType = false) {
       const headers = {};
+      if (API_KEY) {
+        headers['Authorization'] = `Bearer ${API_KEY}`;
+      }
       if (includeContentType) {
         headers['Content-Type'] = 'application/json';
       }
@@ -628,7 +632,7 @@ export default {
             try { sessionStorage.removeItem(this.sessionStorageKey); } catch (e) {}
             const retryRes = await fetch(`${TEXT_MOTION_API_URL}/api/session`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' }
+              headers: this.buildSessionHeaders(true)
             });
             if (retryRes.ok) {
               const data = await retryRes.json();
@@ -1297,13 +1301,13 @@ export default {
     bottom: 0;
     left: 0;
     width: 100%;
-    max-height: 30vh;
+    max-height: 28vh;
     padding-bottom: env(safe-area-inset-bottom, 0);
     display: flex;
     flex-direction: column;
   }
   .controls-card {
-    max-height: 30vh;
+    max-height: 28vh;
     border-radius: 16px 16px 0 0;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
     display: flex;

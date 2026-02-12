@@ -18,6 +18,7 @@ jobs:
       - run: npm run build
         env:
           VITE_TEXT_MOTION_API_URL: ${{ secrets.VITE_TEXT_MOTION_API_URL }}
+          VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist

@@ -25,6 +25,7 @@ import websockets
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel, Field
 import logging
 
@@ -67,6 +68,8 @@ class Config:
     SERIALIZE_REMOTE_REQUESTS = os.getenv("SERIALIZE_REMOTE_REQUESTS", "1") == "1"
     # 允许同一 session_id 在不同 IP/设备上复用（更新 fingerprint），避免“Session does not belong to this client”
     ALLOW_SESSION_REBIND = os.getenv("ALLOW_SESSION_REBIND", "1") == "1"
+    # API Key：设置后所有请求必须带 Authorization: Bearer <API_KEY>，否则 401。不设置则不做校验（兼容旧部署）。
+    API_KEY = os.getenv("API_KEY", "").strip()
 
 
 # ==================== Data Models ====================
@@ -337,6 +340,30 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# API Key 校验中间件：当配置了 API_KEY 时，所有非 OPTIONS 请求必须带 Authorization: Bearer <API_KEY>
+class APIKeyMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        if not Config.API_KEY:
+            return await call_next(request)
+        if request.method == "OPTIONS":
+            return await call_next(request)
+        auth = request.headers.get("Authorization") or ""
+        if not auth.startswith("Bearer "):
+            return JSONResponse(
+                status_code=401,
+                content={"error": "Missing or invalid Authorization header", "code": "UNAUTHORIZED"},
+            )
+        token = auth[7:].strip()
+        if token != Config.API_KEY:
+            return JSONResponse(
+                status_code=401,
+                content={"error": "Invalid API key", "code": "UNAUTHORIZED"},
+            )
+        return await call_next(request)
+
+
+app.add_middleware(APIKeyMiddleware)
+
 # CORS: allow_credentials=True 时浏览器不允许 allow_origins=["*"]，需配置具体域名。
 _origins = list(Config.ALLOWED_ORIGINS) if Config.ALLOWED_ORIGINS else []
 if "*" in _origins and len(_origins) == 1:
@@ -347,7 +374,7 @@ app.add_middleware(
     allow_origins=_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "X-Session-ID"],
+    allow_headers=["Content-Type", "X-Session-ID", "Authorization"],
 )
 
 
@@ -409,7 +436,7 @@ async def generate_motion_from_remote(request_data: dict) -> bytes:
         ) as ws:
             # Send request
             await ws.send(json.dumps(request_data))
-            logger.info(f"Sent request to remote server: {request_data.get('text', '')[:50]}...")
+            logger.info("Sent request to remote motion server")
             
             # Receive response with timeout
             response = await asyncio.wait_for(
@@ -451,9 +478,10 @@ async def generate_motion_from_remote(request_data: dict) -> bytes:
             detail={"error": "Motion generation server unavailable", "code": "SERVER_UNAVAILABLE"}
         )
     except websockets.exceptions.WebSocketException as e:
+        logger.exception("WebSocket error: %s", e)
         raise HTTPException(
             status_code=502,
-            detail={"error": f"WebSocket error: {str(e)}", "code": "WEBSOCKET_ERROR"}
+            detail={"error": "Backend connection error", "code": "WEBSOCKET_ERROR"}
         )
 
 
@@ -471,24 +499,14 @@ def enforce_motion_limit(session: UserSession):
 
 @app.get("/")
 async def root():
-    """Health check endpoint"""
-    return {
-        "status": "running",
-        "service": "Text-to-Motion API Gateway",
-        "version": "1.0.0",
-        "remote_server": f"{Config.REMOTE_WS_HOST}:{Config.REMOTE_WS_PORT}",
-        "active_sessions": len(app_state.sessions)
-    }
+    """Health check endpoint（不暴露内部信息）"""
+    return {"status": "running"}
 
 
 @app.get("/health")
 async def health_check():
-    """Detailed health check"""
-    return {
-        "status": "healthy",
-        "active_sessions": len(app_state.sessions),
-        "timestamp": datetime.now().isoformat()
-    }
+    """Health check"""
+    return {"status": "healthy"}
 
 
 @app.post("/api/generate", response_model=GenerationResponse)
@@ -663,8 +681,9 @@ async def create_session(http_request: Request):
 
 
 @app.get("/api/config")
-async def get_config():
+async def get_config(http_request: Request):
     """Get service configuration (safe values only)"""
+    require_allowed_origin(http_request)
     return {
         "max_motion_length": 9.0,
         "min_motion_length": 0.1,
