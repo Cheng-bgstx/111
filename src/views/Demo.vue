@@ -40,6 +40,7 @@
             <span class="usage-cmds-label">命令</span>
             <div class="usage-cmd-row"><kbd>&lt;文本描述&gt;</kbd> 生成新动作</div>
             <div class="usage-cmd-row"><kbd>default</kbd> 手动回到默认姿态</div>
+            <div class="usage-cmd-row"><kbd>up</kbd> 站起并自动恢复（摔倒后使用）</div>
             <div class="usage-cmd-row"><kbd>last</kbd> 重新加载上一个生成的动作</div>
             <div class="usage-cmd-row"><kbd>list</kbd> 显示所有已生成的动作</div>
             <div class="usage-cmd-row"><kbd>clear</kbd> 清理当前会话下的生成动作</div>
@@ -54,6 +55,7 @@
           <span class="section-label">快捷命令</span>
           <div class="command-buttons">
             <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1" @click="backToDefault">default</v-btn>
+            <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1 || !hasUpMotion" @click="runUpStand">up</v-btn>
             <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1 || !lastGeneratedMotion" @click="replayLastMotion">last</v-btn>
             <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1" @click="listGeneratedMotions">list</v-btn>
             <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1" @click="showStatus">status</v-btn>
@@ -509,6 +511,10 @@ export default {
     },
     canSelectGeneratedMotion() {
       return this.state === 1 && this.demo?.policyRunner?.tracking;
+    },
+    hasUpMotion() {
+      const list = this.getAvailableMotions();
+      return list.includes('fallAndGetUp2_subject2') || list.includes('fallAndGetUp1_subject1');
     }
   },
   methods: {
@@ -624,6 +630,10 @@ export default {
       if (cmd === 'default') {
         this.backToDefault();
         this.statusMessage = '已切换到 default。';
+        return true;
+      }
+      if (cmd === 'up' || cmd === 'u') {
+        this.runUpStand();
         return true;
       }
       if (cmd === 'last') {
@@ -1045,6 +1055,29 @@ export default {
       const accepted = this.requestMotion('default');
       if (accepted) {
         this.currentMotion = 'default';
+        this.updateTrackingState();
+      }
+    },
+    runUpStand() {
+      if (!this.demo) {
+        return;
+      }
+      const list = this.getAvailableMotions();
+      const name = list.includes('fallAndGetUp2_subject2')
+        ? 'fallAndGetUp2_subject2'
+        : list.includes('fallAndGetUp1_subject1')
+          ? 'fallAndGetUp1_subject1'
+          : null;
+      if (!name) {
+        this.statusMessage = '当前策略未加载站起动作，请检查 motions 配置。';
+        setTimeout(() => { this.statusMessage = ''; }, 4000);
+        return;
+      }
+      const accepted = this.requestMotion(name);
+      if (accepted) {
+        this.currentMotion = name;
+        this.statusMessage = '站起动作已加载，完成后将自动恢复 default。';
+        setTimeout(() => { this.statusMessage = ''; }, 3000);
         this.updateTrackingState();
       }
     },
