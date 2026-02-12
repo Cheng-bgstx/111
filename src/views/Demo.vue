@@ -1345,10 +1345,10 @@ export default {
     min-height: 44px;
   }
   .controls--mobile .example-chip--short {
-    min-height: 40px;
+    min-height: 36px;
   }
   .controls--mobile .example-chip--long {
-    min-height: 56px;
+    min-height: 48px;
   }
 }
 
@@ -1391,16 +1391,16 @@ export default {
 }
 
 .controls-body {
-  max-height: calc(100vh - 120px);
+  max-height: calc(100vh - 100px);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 8px 12px 12px;
+  padding: 6px 10px 10px;
 }
 
 .section-divider {
   height: 1px;
   background: rgba(0, 0, 0, 0.07);
-  margin: 8px 0;
+  margin: 6px 0;
 }
 
 .section-label {
@@ -1496,7 +1496,7 @@ export default {
 .example-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
 }
 
 .example-chip {
@@ -1507,23 +1507,22 @@ export default {
   text-align: left;
 }
 
-/* Short phrase (e.g. "jump jacks"): small compact tag */
+/* Same font size as generated list (.motion-chip) below "Tap to replay" */
 .example-chip--short {
   flex: 0 0 auto;
-  font-size: 0.4rem;
+  font-size: 0.7rem;
   line-height: 1.2;
-  min-height: 20px;
-  padding: 3px 6px;
+  min-height: 18px;
+  padding: 2px 5px;
 }
 
-/* Long sentence: larger box so text isn't cramped */
 .example-chip--long {
   flex: 1 1 100%;
   min-width: 0;
-  font-size: 0.4rem;
-  line-height: 1.5;
-  min-height: 56px;
-  padding: 12px 14px;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  min-height: 42px;
+  padding: 6px 8px;
 }
 
 .motion-status {
@@ -1619,7 +1618,7 @@ export default {
 .generate-content {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .generate-textarea {
@@ -1627,10 +1626,10 @@ export default {
 }
 
 .example-label {
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 600;
   color: rgba(0, 0, 0, 0.55);
-  margin: 0 0 4px;
+  margin: 0 0 3px;
 }
 
 .advanced-options {
@@ -1658,9 +1657,9 @@ export default {
 .generated-motions-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 4px;
   margin-top: 2px;
-  max-height: 100px;
+  max-height: 72px;
   overflow-y: auto;
 }
 
