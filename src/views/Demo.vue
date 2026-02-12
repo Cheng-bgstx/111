@@ -1510,7 +1510,7 @@ export default {
 /* Short phrase (e.g. "jump jacks"): small compact tag */
 .example-chip--short {
   flex: 0 0 auto;
-  font-size: 0.6rem;
+  font-size: 0.4rem;
   line-height: 1.2;
   min-height: 20px;
   padding: 3px 6px;
@@ -1520,7 +1520,7 @@ export default {
 .example-chip--long {
   flex: 1 1 100%;
   min-width: 0;
-  font-size: 0.62rem;
+  font-size: 0.4rem;
   line-height: 1.5;
   min-height: 56px;
   padding: 12px 14px;
