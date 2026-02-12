@@ -426,10 +426,10 @@ export default {
     UPRIGHT_CONSECUTIVE_FRAMES: 8,
     examplePrompts: [
       'walk in a circle',
-      'jump jacks',
+      'do jumping jacks',
       'a person is jogging on the spot',
-      'a man full-body sideways jumps to his right',
-      'person is boxing, they throw an upper cut then defend and dodge then they throw a few right jabs'
+      'a man performs a full-body sideways jump to his right',
+      'a person is boxing; they throw an uppercut, defend and dodge, then throw a few right jabs'
     ]
   }),
   computed: {
