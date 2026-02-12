@@ -1489,7 +1489,7 @@ export default {
 
 .command-buttons {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 5px;
 }
 
