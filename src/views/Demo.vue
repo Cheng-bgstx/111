@@ -10,7 +10,7 @@
       class="small-screen-alert"
       @click:close="showSmallScreenAlert = false"
     >
-      手机版：下方为控制面板，可输入文本指令或使用快捷命令操作。
+      Mobile: Control panel is below. Swipe up to expand; the robot remains visible above.
     </v-alert>
     <v-alert
       v-if="isSafari"
@@ -26,33 +26,15 @@
   </div>
   <div class="controls" :class="{ 'controls--mobile': isSmallScreen }">
     <v-card class="controls-card">
-      <v-card-title class="controls-title">文本生成动作</v-card-title>
+      <v-card-title class="controls-title">Text to Motion</v-card-title>
       <v-card-text class="py-0 controls-body">
-        <!-- 使用说明 -->
         <section class="usage-instructions">
-          <h3 class="usage-heading">文本生成动作工具</h3>
-          <p class="usage-desc">输入文本描述 → 生成并加载动作</p>
-          <ul class="usage-bullets">
-            <li>动作执行中可随时输入新文本切换动作</li>
-            <li>动作完成后自动切换到 default 姿态</li>
-          </ul>
-          <div class="usage-cmds">
-            <span class="usage-cmds-label">命令</span>
-            <div class="usage-cmd-row"><kbd>&lt;文本描述&gt;</kbd> 生成新动作</div>
-            <div class="usage-cmd-row"><kbd>default</kbd> 手动回到默认姿态</div>
-            <div class="usage-cmd-row"><kbd>up</kbd> 站起并自动恢复（摔倒后使用）</div>
-            <div class="usage-cmd-row"><kbd>last</kbd> 重新加载上一个生成的动作</div>
-            <div class="usage-cmd-row"><kbd>list</kbd> 显示所有已生成的动作</div>
-            <div class="usage-cmd-row"><kbd>clear</kbd> 清理当前会话下的生成动作</div>
-            <div class="usage-cmd-row"><kbd>status</kbd> 显示当前动作状态</div>
-            <div class="usage-cmd-row"><kbd>q</kbd>/<kbd>quit</kbd> 退出（网页请直接关闭页面）</div>
-          </div>
+          <p class="usage-desc">Enter a text description to generate a motion, or use the shortcut buttons below. You can also type: <kbd>default</kbd>, <kbd>up</kbd>, <kbd>last</kbd>, <kbd>list</kbd>, <kbd>status</kbd>, <kbd>clear</kbd>. Motion returns to default when finished or when standing after <kbd>up</kbd>.</p>
         </section>
         <div class="section-divider"></div>
 
-        <!-- 快捷命令 -->
         <section class="command-section">
-          <span class="section-label">快捷命令</span>
+          <span class="section-label">Shortcuts</span>
           <div class="command-buttons">
             <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1" @click="backToDefault">default</v-btn>
             <v-btn size="x-small" variant="tonal" color="primary" :disabled="state !== 1 || !hasUpMotion" @click="runUpStand">up</v-btn>
@@ -64,9 +46,8 @@
         </section>
         <div class="section-divider"></div>
 
-        <!-- Text-to-Motion Section -->
         <section class="text-to-motion-section">
-          <span class="section-label">AI 动作生成</span>
+          <span class="section-label">Generate</span>
           <div class="status-legend">
             <v-chip
               v-if="textMotionStatus === 'connected'"
@@ -110,8 +91,8 @@
             <div v-if="showTextMotionPanel">
               <v-textarea
                 v-model="textPrompt"
-                label="输入文本描述"
-                placeholder="例如: a person walks forward"
+                label="Text description"
+                placeholder="e.g. a person walks forward"
                 density="compact"
                 hide-details
                 rows="2"
@@ -120,7 +101,7 @@
                 @keydown.enter.prevent="handleEnterKey"
               ></v-textarea>
               <div class="example-prompts mt-2">
-                <span class="text-caption mr-1">示例（点击即生成）:</span>
+                <span class="text-caption mr-1">Examples (tap to generate):</span>
                 <div class="example-chips">
                   <v-chip
                     v-for="ex in examplePrompts"
@@ -256,13 +237,12 @@
 
         <v-divider class="my-2"/>
 
-        <!-- list: 已生成的动作（最多 10 个） -->
         <div v-if="generatedMotions.length > 0" class="generated-section mt-2">
-          <span class="section-label">已生成的动作</span>
+          <span class="section-label">Generated</span>
           <div class="status-legend generated-legend">
-            <v-chip size="x-small" variant="tonal" color="primary">{{ generatedMotions.length }}/10{{ generatedMotions.length >= 10 ? '（已达上限）' : '' }}</v-chip>
+            <v-chip size="x-small" variant="tonal" color="primary">{{ generatedMotions.length }}/10{{ generatedMotions.length >= 10 ? ' (max)' : '' }}</v-chip>
           </div>
-          <p class="generated-hint">最多保留 10 个，点击可重新播放。</p>
+          <p class="generated-hint">Tap to replay. Up to 10 kept.</p>
           <div class="generated-motions-list">
             <v-chip
               v-for="motion in generatedMotions"
@@ -280,7 +260,6 @@
           <v-divider class="my-2"/>
         </div>
 
-        <!-- status 显示 -->
         <div v-if="statusMessage" class="status-message text-caption mt-2">{{ statusMessage }}</div>
       </v-card-text>
       <v-card-actions>
@@ -596,7 +575,7 @@ export default {
         sessionStorage.removeItem(this.sessionStorageKey);
       } catch (e) {}
       this.textMotionStatus = 'disconnected';
-      this.statusMessage = '会话已失效（如更换设备或网络），已自动清除，请重试。';
+      this.statusMessage = 'Session expired. Cleared. Please try again.';
       setTimeout(() => { this.statusMessage = ''; }, 5000);
     },
 
@@ -635,7 +614,7 @@ export default {
               this.sessionId = data.session_id;
               sessionStorage.setItem(this.sessionStorageKey, this.sessionId);
               this.textMotionStatus = 'connected';
-              this.statusMessage = '已自动创建新会话，请继续使用。';
+              this.statusMessage = 'New session created. You can continue.';
               setTimeout(() => { this.statusMessage = ''; }, 4000);
               await this.loadGeneratedMotionsFromServer();
               return;
@@ -664,7 +643,7 @@ export default {
       }
       if (cmd === 'default') {
         this.backToDefault();
-        this.statusMessage = '已切换到 default。';
+        this.statusMessage = 'Switched to default.';
         return true;
       }
       if (cmd === 'up' || cmd === 'u') {
@@ -673,7 +652,7 @@ export default {
       }
       if (cmd === 'last') {
         this.replayLastMotion();
-        this.statusMessage = this.lastGeneratedMotion ? '已加载上一个生成动作。' : '暂无上一个生成动作。';
+        this.statusMessage = this.lastGeneratedMotion ? 'Replaying last generated motion.' : 'No generated motion to replay.';
         return true;
       }
       if (cmd === 'list') {
@@ -689,7 +668,7 @@ export default {
         return true;
       }
       if (cmd === 'q' || cmd === 'quit') {
-        this.statusMessage = '网页模式无需 quit，请直接关闭页面标签。';
+        this.statusMessage = 'Close the browser tab to exit.';
         setTimeout(() => { this.statusMessage = ''; }, 4000);
         return true;
       }
@@ -795,7 +774,7 @@ export default {
 
         if (response.status === 403 && data.code === 'SESSION_FORBIDDEN') {
           this.clearSessionForbidden();
-          this.textMotionError = '会话已失效，请重试生成。';
+          this.textMotionError = 'Session expired. Please try again.';
           this.textMotionStatus = 'error';
           return;
         }
@@ -875,9 +854,9 @@ export default {
     listGeneratedMotions() {
       const labels = this.generatedMotions.map((m) => (m.text_prompt || m.motion_id || '').trim()).filter(Boolean);
       if (labels.length === 0) {
-        this.statusMessage = '当前无已生成动作。';
+        this.statusMessage = 'No generated motions yet.';
       } else {
-        this.statusMessage = `已生成动作(${labels.length}/${MAX_GENERATED_MOTIONS}): ${labels.join(' | ')}`;
+        this.statusMessage = `Generated (${labels.length}/${MAX_GENERATED_MOTIONS}): ${labels.join(' | ')}`;
       }
       setTimeout(() => { this.statusMessage = ''; }, 5000);
     },
@@ -887,7 +866,7 @@ export default {
         this.statusMessage = '状态: 未就绪';
         return;
       }
-      this.statusMessage = `当前动作: ${s.currentName}，${s.currentDone ? '已结束' : '播放中'}${s.isDefault ? '（默认姿态）' : ''}，已生成: ${this.generatedMotions.length}/${MAX_GENERATED_MOTIONS}`;
+      this.statusMessage = `Motion: ${s.currentName}; ${s.currentDone ? 'done' : 'playing'}${s.isDefault ? ' (default)' : ''}; generated: ${this.generatedMotions.length}/${MAX_GENERATED_MOTIONS}`;
       setTimeout(() => { this.statusMessage = ''; }, 4000);
     },
     async clearOldMotions() {
@@ -908,7 +887,7 @@ export default {
       this.generatedMotionMap = new Map();
       this.generatedMotions = [];
       this.lastGeneratedMotion = null;
-      this.statusMessage = '已清理当前会话下的生成动作。';
+      this.statusMessage = 'Cleared generated motions for this session.';
       setTimeout(() => { this.statusMessage = ''; }, 3000);
     },
     async trimGeneratedMotions(maxCount = MAX_GENERATED_MOTIONS) {
@@ -1122,7 +1101,7 @@ export default {
           ? 'fallAndGetUp1_subject1'
           : null;
       if (!name) {
-        this.statusMessage = '当前策略未加载站起动作，请检查 motions 配置。';
+        this.statusMessage = 'No get-up motion loaded. Check motions config.';
         setTimeout(() => { this.statusMessage = ''; }, 4000);
         return;
       }
@@ -1131,7 +1110,7 @@ export default {
         this.currentMotion = name;
         this.isUprightMonitoring = true;
         this.uprightCheckCount = 0;
-        this.statusMessage = '站起动作已加载，检测到站直后自动恢复 default。';
+        this.statusMessage = 'Get-up loaded. Will switch to default when standing.';
         setTimeout(() => { this.statusMessage = ''; }, 3000);
         this.updateTrackingState();
       }
@@ -1188,7 +1167,7 @@ export default {
             const accepted = this.requestMotion('default');
             if (accepted) {
               this.currentMotion = 'default';
-              this.statusMessage = '检测到已站直，自动切换到 default 姿态。';
+              this.statusMessage = 'Standing detected. Switched to default.';
               setTimeout(() => { this.statusMessage = ''; }, 3000);
             }
           }
@@ -1209,7 +1188,7 @@ export default {
           const accepted = this.requestMotion('default');
           if (accepted) {
             this.currentMotion = 'default';
-            this.statusMessage = '动作已完成，自动切换到 default 姿态。';
+            this.statusMessage = 'Motion done. Switched to default.';
             setTimeout(() => { this.statusMessage = ''; }, 3000);
           }
         }
@@ -1289,7 +1268,7 @@ export default {
   z-index: 1000;
 }
 
-/* 手机/小屏：底部抽屉式控制面板，便于输入文本指令 */
+/* Mobile: compact bottom bar so the robot stays visible above (~55% viewport for scene) */
 @media (max-width: 499px), (max-height: 699px) {
   .controls {
     top: auto;
@@ -1297,13 +1276,13 @@ export default {
     bottom: 0;
     left: 0;
     width: 100%;
-    max-height: 72vh;
+    max-height: 44vh;
     padding-bottom: env(safe-area-inset-bottom, 0);
     display: flex;
     flex-direction: column;
   }
   .controls-card {
-    max-height: 72vh;
+    max-height: 44vh;
     border-radius: 16px 16px 0 0;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
     display: flex;
@@ -1318,7 +1297,16 @@ export default {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
-  /* 触控友好：输入框 16px 避免 iOS 聚焦放大 */
+  .controls--mobile .controls-title {
+    padding: 10px 12px 6px;
+  }
+  .controls--mobile .usage-instructions {
+    padding: 8px 10px;
+  }
+  .controls--mobile .usage-desc {
+    font-size: 0.75rem;
+    line-height: 1.35;
+  }
   .controls--mobile .text-to-motion-section :deep(textarea),
   .controls--mobile .text-to-motion-section :deep(.v-field__input) {
     font-size: 16px !important;
@@ -1364,23 +1352,24 @@ export default {
 }
 
 .controls-title {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   padding: 14px 16px 8px;
+  text-align: center;
 }
 
 .controls-body {
   max-height: calc(100vh - 160px);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 8px 16px 16px;
+  padding: 6px 14px 14px;
 }
 
 .section-divider {
   height: 1px;
-  background: rgba(0, 0, 0, 0.08);
-  margin: 12px 0;
+  background: rgba(0, 0, 0, 0.06);
+  margin: 10px 0;
 }
 
 .section-label {
@@ -1388,90 +1377,44 @@ export default {
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: rgba(0, 0, 0, 0.55);
-  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+  color: rgba(0, 0, 0, 0.5);
+  margin-bottom: 6px;
 }
 
 .usage-instructions {
-  background: linear-gradient(135deg, rgba(25, 118, 210, 0.06) 0%, rgba(25, 118, 210, 0.02) 100%);
-  border-radius: 10px;
-  padding: 12px 14px;
-  border: 1px solid rgba(25, 118, 210, 0.12);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.usage-heading {
-  font-size: 0.9rem;
-  font-weight: 700;
-  margin: 0 0 2px;
-  color: rgba(0, 0, 0, 0.85);
-  letter-spacing: 0.01em;
+  background: rgba(25, 118, 210, 0.05);
+  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(25, 118, 210, 0.1);
 }
 
 .usage-desc {
   font-size: 0.8rem;
-  line-height: 1.4;
+  line-height: 1.45;
   color: rgba(0, 0, 0, 0.7);
   margin: 0;
 }
 
-.usage-bullets {
-  margin: 4px 0 6px 14px;
-  padding: 0;
-  font-size: 0.78rem;
-  line-height: 1.45;
-  color: rgba(0, 0, 0, 0.65);
-}
-
-.usage-bullets li {
-  margin-bottom: 2px;
-}
-
-.usage-cmds {
-  font-size: 0.78rem;
-  line-height: 1.5;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.usage-cmds-label {
-  font-weight: 700;
-  font-size: 0.75rem;
-  color: rgba(0, 0, 0, 0.75);
-  margin-bottom: 2px;
-}
-
-.usage-cmd-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.usage-cmd-row kbd {
+.usage-desc kbd {
   font-family: ui-monospace, monospace;
-  font-size: 0.72rem;
-  padding: 2px 6px;
+  font-size: 0.75rem;
+  padding: 2px 5px;
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.07);
   border: 1px solid rgba(0, 0, 0, 0.1);
-  flex-shrink: 0;
 }
 
 .command-section {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 6px;
 }
 
 .command-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .example-prompts .text-caption {
@@ -1566,11 +1509,10 @@ export default {
   animation: none !important;
 }
 
-/* Text-to-Motion Section Styles */
 .text-to-motion-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .advanced-options {

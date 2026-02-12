@@ -256,8 +256,25 @@ def require_allowed_origin(http_request: Request) -> None:
         )
 
 
+def _is_valid_session_id(s: Optional[str]) -> bool:
+    """只接受 UUID 格式的 session_id，避免非法头注入或异常 key。"""
+    if not s or not isinstance(s, str) or len(s) > 64:
+        return False
+    try:
+        uuid.UUID(s)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
 async def get_bound_session(http_request: Request, allow_create: bool) -> UserSession:
-    session_id = http_request.headers.get("X-Session-ID")
+    session_id_raw = http_request.headers.get("X-Session-ID")
+    session_id = (session_id_raw or "").strip() or None
+    if session_id and not _is_valid_session_id(session_id):
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "Invalid X-Session-ID format", "code": "INVALID_SESSION_ID"}
+        )
     fingerprint = get_client_fingerprint(http_request)
     if not session_id and Config.REQUIRE_SESSION_FOR_API and not allow_create:
         raise HTTPException(
@@ -320,10 +337,14 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware
+# CORS: allow_credentials=True 时浏览器不允许 allow_origins=["*"]，需配置具体域名。
+_origins = list(Config.ALLOWED_ORIGINS) if Config.ALLOWED_ORIGINS else []
+if "*" in _origins and len(_origins) == 1:
+    logger.warning("ALLOWED_ORIGINS=* is incompatible with credentials; CORS will allow no origins. Set explicit origins.")
+    _origins = []
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=Config.ALLOWED_ORIGINS if Config.ALLOWED_ORIGINS else [],
+    allow_origins=_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "X-Session-ID"],
@@ -558,9 +579,10 @@ async def generate_motion(
         raise
     except Exception as e:
         logger.error(f"Generation error: {e}")
+        # 不向客户端返回内部异常详情，避免信息泄露
         raise HTTPException(
             status_code=500,
-            detail={"error": f"Failed to generate motion: {str(e)}", "code": "GENERATION_FAILED"}
+            detail={"error": "Failed to generate motion", "code": "GENERATION_FAILED"}
         )
 
 
