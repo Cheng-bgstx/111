@@ -19,6 +19,10 @@
       "file": "fallAndGetUp2_subject2.json"
     },
     {
+      "name": "getUp_once",
+      "file": "getUp_once.json"
+    },
+    {
       "name": "fight1_subject2",
       "file": "fight1_subject2.json"
     },
