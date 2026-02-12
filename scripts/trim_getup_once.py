@@ -15,6 +15,8 @@ OUT_FILE = os.path.join(MOTIONS_DIR, "getUp_once.json")
 ROOT_Z_STANDING = 0.74
 ROOT_Z_LOW = 0.55
 STANDING_FRAMES = 40
+# 检测到站直后，再多保留的站立帧数，给 policy 足够时间跟踪并站稳
+EXTRA_STANDING_FRAMES = 120
 
 
 def main():
@@ -30,23 +32,28 @@ def main():
         row = root_pos[i]
         return row[2] if isinstance(row, (list, tuple)) else row
 
+    # 从第一次倒地开始，或从第 0 帧开始（若希望包含「站→倒→起」完整一段，便于从任意当前状态过渡）
     start_idx = 0
     for i in range(n):
         if z_at(i) < ROOT_Z_LOW:
             start_idx = i
             break
+    # 可略微提前几帧，使倒地过渡更顺（可选）
+    start_idx = max(0, start_idx - 15)
 
     end_idx = n
     count = 0
+    first_standing_end = n
     for i in range(start_idx, n):
         if z_at(i) >= ROOT_Z_STANDING:
             count += 1
             if count >= STANDING_FRAMES:
-                end_idx = i + 1
+                first_standing_end = i + 1
                 break
         else:
             count = 0
 
+    end_idx = min(first_standing_end + EXTRA_STANDING_FRAMES, n)
     min_frames = 80
     end_idx = max(end_idx, min_frames)
     end_idx = min(end_idx, n)
