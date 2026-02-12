@@ -13,10 +13,7 @@ SRC_FILE = os.path.join(MOTIONS_DIR, "fallAndGetUp2_subject2.json")
 OUT_FILE = os.path.join(MOTIONS_DIR, "getUp_once.json")
 
 ROOT_Z_STANDING = 0.74
-ROOT_Z_LOW = 0.55
 STANDING_FRAMES = 40
-# 检测到站直后，再多保留的站立帧数，给 policy 足够时间跟踪并站稳
-EXTRA_STANDING_FRAMES = 120
 
 
 def main():
@@ -28,46 +25,30 @@ def main():
     n = len(joint_pos)
     assert len(root_pos) == n and len(root_quat) == n
 
-    def z_at(i):
-        row = root_pos[i]
-        return row[2] if isinstance(row, (list, tuple)) else row
-
-    # 从第一次倒地开始，或从第 0 帧开始（若希望包含「站→倒→起」完整一段，便于从任意当前状态过渡）
-    start_idx = 0
-    for i in range(n):
-        if z_at(i) < ROOT_Z_LOW:
-            start_idx = i
-            break
-    # 可略微提前几帧，使倒地过渡更顺（可选）
-    start_idx = max(0, start_idx - 15)
-
     end_idx = n
     count = 0
-    first_standing_end = n
-    for i in range(start_idx, n):
-        if z_at(i) >= ROOT_Z_STANDING:
+    for i in range(n):
+        z = root_pos[i][2] if isinstance(root_pos[i], (list, tuple)) else root_pos[i]
+        if z >= ROOT_Z_STANDING:
             count += 1
             if count >= STANDING_FRAMES:
-                first_standing_end = i + 1
+                end_idx = i + 1
                 break
         else:
             count = 0
 
-    end_idx = min(first_standing_end + EXTRA_STANDING_FRAMES, n)
-    min_frames = 80
+    min_frames = 60
     end_idx = max(end_idx, min_frames)
     end_idx = min(end_idx, n)
 
-    start_idx = min(start_idx, end_idx - 1)
     out = {
-        "joint_pos": joint_pos[start_idx:end_idx],
-        "root_pos": root_pos[start_idx:end_idx],
-        "root_quat": root_quat[start_idx:end_idx],
+        "joint_pos": joint_pos[:end_idx],
+        "root_pos": root_pos[:end_idx],
+        "root_quat": root_quat[:end_idx],
     }
-    num_frames = len(out["joint_pos"])
     with open(OUT_FILE, "w", encoding="utf-8") as f:
         json.dump(out, f, separators=(",", ":"), ensure_ascii=False)
-    print(f"Written {num_frames} frames (indices {start_idx}-{end_idx}) to {OUT_FILE}")
+    print(f"Written {end_idx} frames to {OUT_FILE}")
 
 
 if __name__ == "__main__":

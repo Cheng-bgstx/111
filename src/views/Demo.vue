@@ -514,9 +514,7 @@ export default {
     },
     hasUpMotion() {
       const list = this.getAvailableMotions();
-      return list.includes('getUp_once') ||
-        list.includes('fallAndGetUp2_subject2') ||
-        list.includes('fallAndGetUp1_subject1');
+      return list.includes('fallAndGetUp2_subject2') || list.includes('fallAndGetUp1_subject1');
     }
   },
   methods: {
@@ -1065,13 +1063,11 @@ export default {
         return;
       }
       const list = this.getAvailableMotions();
-      const name = list.includes('getUp_once')
-        ? 'getUp_once'
-        : list.includes('fallAndGetUp2_subject2')
-          ? 'fallAndGetUp2_subject2'
-          : list.includes('fallAndGetUp1_subject1')
-            ? 'fallAndGetUp1_subject1'
-            : null;
+      const name = list.includes('fallAndGetUp2_subject2')
+        ? 'fallAndGetUp2_subject2'
+        : list.includes('fallAndGetUp1_subject1')
+          ? 'fallAndGetUp1_subject1'
+          : null;
       if (!name) {
         this.statusMessage = '当前策略未加载站起动作，请检查 motions 配置。';
         setTimeout(() => { this.statusMessage = ''; }, 4000);
