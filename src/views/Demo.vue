@@ -589,6 +589,17 @@ export default {
       return headers;
     },
 
+    /** 服务端返回 403 SESSION_FORBIDDEN 时清除本地会话并提示（如更换设备/网络导致） */
+    clearSessionForbidden() {
+      this.sessionId = null;
+      try {
+        sessionStorage.removeItem(this.sessionStorageKey);
+      } catch (e) {}
+      this.textMotionStatus = 'disconnected';
+      this.statusMessage = '会话已失效（如更换设备或网络），已自动清除，请重试。';
+      setTimeout(() => { this.statusMessage = ''; }, 5000);
+    },
+
     async initTextMotionSession() {
       // Initialize or resume session with the text-to-motion API
       try {
@@ -608,10 +619,31 @@ export default {
           this.textMotionStatus = 'connected';
           console.log('[TextMotion] Session created:', this.sessionId);
           await this.loadGeneratedMotionsFromServer();
-        } else {
-          console.warn('[TextMotion] Failed to create session');
-          this.textMotionStatus = 'disconnected';
+          return;
         }
+        if (response.status === 403) {
+          const errData = await response.json().catch(() => ({}));
+          if (errData.code === 'SESSION_FORBIDDEN') {
+            this.sessionId = null;
+            try { sessionStorage.removeItem(this.sessionStorageKey); } catch (e) {}
+            const retryRes = await fetch(`${TEXT_MOTION_API_URL}/api/session`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            });
+            if (retryRes.ok) {
+              const data = await retryRes.json();
+              this.sessionId = data.session_id;
+              sessionStorage.setItem(this.sessionStorageKey, this.sessionId);
+              this.textMotionStatus = 'connected';
+              this.statusMessage = '已自动创建新会话，请继续使用。';
+              setTimeout(() => { this.statusMessage = ''; }, 4000);
+              await this.loadGeneratedMotionsFromServer();
+              return;
+            }
+          }
+        }
+        console.warn('[TextMotion] Failed to create session');
+        this.textMotionStatus = 'disconnected';
       } catch (error) {
         console.warn('[TextMotion] API not available:', error.message);
         this.textMotionStatus = 'disconnected';
@@ -674,6 +706,10 @@ export default {
           headers: this.buildSessionHeaders(false)
         });
         if (!listResp.ok) {
+          if (listResp.status === 403) {
+            const d = await listResp.json().catch(() => ({}));
+            if (d.code === 'SESSION_FORBIDDEN') this.clearSessionForbidden();
+          }
           return;
         }
         const payload = await listResp.json();
@@ -693,6 +729,10 @@ export default {
             headers: this.buildSessionHeaders(false)
           });
           if (!motionResp.ok) {
+            if (motionResp.status === 403) {
+              const d = await motionResp.json().catch(() => ({}));
+              if (d.code === 'SESSION_FORBIDDEN') this.clearSessionForbidden();
+            }
             continue;
           }
           const motionData = await motionResp.json();
@@ -751,8 +791,14 @@ export default {
           body: JSON.stringify(requestBody)
         });
 
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
 
+        if (response.status === 403 && data.code === 'SESSION_FORBIDDEN') {
+          this.clearSessionForbidden();
+          this.textMotionError = '会话已失效，请重试生成。';
+          this.textMotionStatus = 'error';
+          return;
+        }
         if (!response.ok || !data.success) {
           throw new Error(data.error || 'Failed to generate motion');
         }
@@ -847,10 +893,14 @@ export default {
     async clearOldMotions() {
       try {
         if (this.sessionId) {
-          await fetch(`${TEXT_MOTION_API_URL}/api/motions`, {
+          const res = await fetch(`${TEXT_MOTION_API_URL}/api/motions`, {
             method: 'DELETE',
             headers: this.buildSessionHeaders(false)
           });
+          if (res.status === 403) {
+            const d = await res.json().catch(() => ({}));
+            if (d.code === 'SESSION_FORBIDDEN') this.clearSessionForbidden();
+          }
         }
       } catch (error) {
         console.warn('[TextMotion] clear api failed:', error.message);

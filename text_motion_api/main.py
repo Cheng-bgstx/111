@@ -65,6 +65,8 @@ class Config:
     TRUST_PROXY_HEADERS = os.getenv("TRUST_PROXY_HEADERS", "0") == "1"
     REQUIRE_SESSION_FOR_API = os.getenv("REQUIRE_SESSION_FOR_API", "1") == "1"
     SERIALIZE_REMOTE_REQUESTS = os.getenv("SERIALIZE_REMOTE_REQUESTS", "1") == "1"
+    # 允许同一 session_id 在不同 IP/设备上复用（更新 fingerprint），避免“Session does not belong to this client”
+    ALLOW_SESSION_REBIND = os.getenv("ALLOW_SESSION_REBIND", "1") == "1"
 
 
 # ==================== Data Models ====================
@@ -140,6 +142,11 @@ class AppState:
                 if session_id in self.sessions:
                     session = self.sessions[session_id]
                     if session.client_fingerprint and session.client_fingerprint != client_fingerprint:
+                        if Config.ALLOW_SESSION_REBIND:
+                            session.client_fingerprint = client_fingerprint
+                            session.last_activity = datetime.now()
+                            logger.info(f"Session {session_id} rebound to new client")
+                            return session
                         raise PermissionError("Session fingerprint mismatch")
                     session.last_activity = datetime.now()
                     return session
