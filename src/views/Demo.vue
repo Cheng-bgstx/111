@@ -1510,20 +1510,20 @@ export default {
 /* Short phrase (e.g. "jump jacks"): small compact tag */
 .example-chip--short {
   flex: 0 0 auto;
-  font-size: 0.68rem;
-  line-height: 1.25;
-  min-height: 22px;
-  padding: 4px 8px;
+  font-size: 0.6rem;
+  line-height: 1.2;
+  min-height: 20px;
+  padding: 3px 6px;
 }
 
-/* Long sentence: larger box (width + height) so text isn't cramped */
+/* Long sentence: larger box so text isn't cramped */
 .example-chip--long {
   flex: 1 1 100%;
   min-width: 0;
-  font-size: 0.72rem;
-  line-height: 1.45;
-  min-height: 52px;
-  padding: 10px 12px;
+  font-size: 0.62rem;
+  line-height: 1.5;
+  min-height: 56px;
+  padding: 12px 14px;
 }
 
 .motion-status {
